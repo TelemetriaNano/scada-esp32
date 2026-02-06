@@ -2,23 +2,34 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ESP32 SCADA</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SCADA ESP32</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>ESP32 SCADA</h1>
+  <div class="container">
+    <h1>SCADA ESP32</h1>
+    <p>Telemetría WAN (solo lectura)</p>
 
-  <div class="card" id="potCard">
-    Potenciómetro: <b><span id="pot">--</span>%</b>
+    <div class="grid">
+      <div class="card">
+        <div class="title">Potenciómetro</div>
+        <div class="value" id="pot">--%</div>
+      </div>
+      <div class="card">
+        <div class="title">Switch</div>
+        <div class="value btn" id="sw">OFF</div>
+      </div>
+      <div class="card">
+        <div class="title">Alarma</div>
+        <div class="value btn" id="alarm">OK</div>
+      </div>
+      <div class="card">
+        <div class="title">Evento</div>
+        <div class="value" id="event">--</div>
+      </div>
+    </div>
   </div>
-  <div class="card">
-    Switch: <span id="sw" class="badge">--</span>
-  </div>
-  <div class="card">
-    LED: <span id="led" class="badge">--</span>
-  </div>
-  <button id="toggleBtn">Toggle LED</button>
 
   <script src="script.js"></script>
 </body>
