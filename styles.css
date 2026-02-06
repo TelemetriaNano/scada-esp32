@@ -1,0 +1,37 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #0e1621;
+  color: #eaeaea;
+  text-align: center;
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #1b2635;
+  border-radius: 10px;
+  padding: 15px;
+  margin: 15px auto;
+  max-width: 400px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+}
+
+.offline {
+  color: #ff4d4d;
+  font-weight: bold;
+}
+
+.online {
+  color: #4dff88;
+  font-weight: bold;
+}
+
+footer {
+  margin-top: 30px;
+  font-size: 0.8em;
+  opacity: 0.6;
+}

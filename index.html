@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SCADA ESP32 – Telemetría</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- MQTT.js -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+
+  <h1>📡 SCADA ESP32 – WAN</h1>
+
+  <div class="card">
+    <h2>Estado de conexión</h2>
+    <p id="status" class="offline">Desconectado</p>
+  </div>
+
+  <div class="card">
+    <h2>Telemetría</h2>
+    <p>Temperatura: <span id="temp">--</span> °C</p>
+    <p>Humedad: <span id="hum">--</span> %</p>
+  </div>
+
+  <footer>
+    ESP32 · MQTT · GitHub Pages
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
