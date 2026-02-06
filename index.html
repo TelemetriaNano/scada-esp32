@@ -3,146 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCADA ESP32 WAN</title>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <title>SCADA WAN - Control Remoto</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
-        :root {
-            --bg-dark: #1e222d;
-            --card-bg: #2b303f;
-            --text-main: #ffffff;
-            --text-dim: #b1b5be;
-            --green-btn: #66bb6a;
-            --red-alert: #ef5350;
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 { margin: 5px 0; font-size: 1.8rem; letter-spacing: 1px; }
-        .header p { color: var(--text-dim); font-size: 0.9rem; }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 25px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .card h3 {
-            margin: 0 0 15px 0;
-            color: var(--text-dim);
-            font-size: 1rem;
-            text-transform: uppercase;
-        }
-
-        .val-large { font-size: 3rem; font-weight: bold; margin: 10px 0; }
-        
-        .pill {
-            display: inline-block;
-            width: 80%;
-            padding: 12px;
-            border-radius: 30px;
-            font-weight: bold;
-            background: #3d445a;
-            transition: 0.3s;
-        }
-
-        .active-sw { background: var(--green-btn); color: white; }
-        .active-alarm { background: var(--red-alert); color: white; }
-
-        @media (max-width: 480px) {
-            .grid { grid-template-columns: 1fr; }
-        }
+        :root { --bg: #1e222d; --card: #2b303f; --text: #ffffff; --dim: #b1b5be; --green: #66bb6a; --red: #ef5350; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .header { text-align: center; margin-bottom: 20px; width: 100%; max-width: 500px; }
+        .status-bar { display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 50px; margin-top: 10px; border: 1px solid #3d445a; }
+        .ojo-buey { width: 12px; height: 12px; background: #444; border-radius: 50%; transition: 0.3s; }
+        .online { background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 2s infinite; }
+        .offline { background: var(--red); box-shadow: 0 0 10px var(--red); }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; max-width: 500px; }
+        .card { background: var(--card); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        .val { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+        .label { font-size: 0.9rem; color: var(--dim); margin-bottom: 5px; }
+        .btn { width: 90%; padding: 12px; border-radius: 30px; border: none; font-weight: bold; background: #3d445a; color: white; text-transform: uppercase; font-size: 0.8rem; }
+        .active-alarm { background: var(--red); box-shadow: 0 0 10px var(--red); }
+        @media (max-width: 450px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-
     <div class="header">
-        <h1 id="clock">00:00:00</h1>
-        <h1>SCADA ESP32</h1>
-        <p>Telemetría WAN (solo lectura)</p>
+        <h2 style="margin:0;">SCADA WAN (REMOTO)</h2>
+        <div class="status-bar">
+            <div id="status-led" class="ojo-buey"></div>
+            <span id="status-text" style="font-size: 0.8rem; font-weight: bold;">CONECTANDO AL BROKER...</span>
+        </div>
     </div>
 
     <div class="grid">
         <div class="card">
-            <h3>Potenciómetro</h3>
-            <div class="val-large"><span id="pot">0</span>%</div>
+            <div class="label">Potenciómetro</div>
+            <div class="val"><span id="pot">--</span>%</div>
         </div>
-
         <div class="card">
-            <h3>Switch</h3>
-            <div id="sw-pill" class="pill">OFF</div>
+            <div class="label">Estado Alarma</div>
+            <div id="alm-btn" class="btn">ESPERANDO...</div>
+            <div style="font-size: 0.75rem; color: var(--dim); margin-top: 8px;">Activaciones: <span id="counter">0</span></div>
         </div>
-
         <div class="card">
-            <h3>Alarma</h3>
-            <div id="alarm-pill" class="pill">OK</div>
+            <div class="label">Switch Físico</div>
+            <div id="sw" style="font-size: 1.1rem; margin-top:10px; font-weight:bold;">--</div>
         </div>
-
         <div class="card">
-            <h3>Evento</h3>
-            <p id="event-log" style="color: var(--text-dim);">Sincronizando...</p>
+            <div class="label">Último Evento</div>
+            <div id="evento" style="font-size: 0.8rem; color: var(--green); margin-top:10px;">Ninguno</div>
         </div>
     </div>
 
     <script>
-        // Reloj
-        setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-        }, 1000);
+        // Configuración MQTT (Debe coincidir con tu ESP32)
+        const broker = 'wss://broker.hivemq.com:8884/mqtt';
+        const client = mqtt.connect(broker);
 
-        // Conexión MQTT (HiveMQ WebSockets Puerto 8884 para SSL)
-        const client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+        const topics = {
+            pot: "esp32/telemetria/pot",
+            sw: "esp32/telemetria/switch",
+            alarm: "esp32/alarmas/estado",
+            count: "esp32/alarmas/conteo",
+            event: "esp32/eventos/boton"
+        };
 
         client.on('connect', () => {
-            console.log("Conectado al Broker");
-            client.subscribe('esp32/telemetria/pot');
-            client.subscribe('esp32/telemetria/switch');
-            client.subscribe('esp32/alarmas/estado');
-            client.subscribe('esp32/eventos/boton');
+            document.getElementById('status-led').classList.add('online');
+            document.getElementById('status-text').innerText = 'BROKER ONLINE';
+            document.getElementById('status-text').style.color = 'var(--green)';
+            
+            // Suscribirse a todos los tópicos
+            Object.values(topics).forEach(t => client.subscribe(t));
         });
 
         client.on('message', (topic, message) => {
-            const val = message.toString();
+            const msg = message.toString();
             
-            if (topic.includes('pot')) {
-                document.getElementById('pot').innerText = val;
-            } 
-            else if (topic.includes('switch')) {
-                const p = document.getElementById('sw-pill');
-                p.innerText = val === "1" ? "ON" : "OFF";
-                val === "1" ? p.classList.add('active-sw') : p.classList.remove('active-sw');
+            if (topic === topics.pot) document.getElementById('pot').innerText = msg;
+            
+            if (topic === topics.count) document.getElementById('counter').innerText = msg;
+            
+            if (topic === topics.sw) {
+                document.getElementById('sw').innerText = (msg === "1") ? "CERRADO" : "ABIERTO";
             }
-            else if (topic.includes('estado')) {
-                const p = document.getElementById('alarm-pill');
-                p.innerText = val === "1" ? "ACTIVA" : "OK";
-                val === "1" ? p.classList.add('active-alarm') : p.classList.remove('active-alarm');
+            
+            if (topic === topics.alarm) {
+                const alm = document.getElementById('alm-btn');
+                if (msg === "1") {
+                    alm.innerText = "ALERTA CRÍTICA";
+                    alm.classList.add('active-alarm');
+                } else {
+                    alm.innerText = "SISTEMA OK";
+                    alm.classList.remove('active-alarm');
+                }
             }
-            else if (topic.includes('boton')) {
-                document.getElementById('event-log').innerText = val;
+
+            if (topic === topics.event) {
+                document.getElementById('evento').innerText = msg;
+                setTimeout(() => { document.getElementById('evento').innerText = "Ninguno"; }, 5000);
             }
+        });
+
+        client.on('error', () => {
+            document.getElementById('status-led').className = 'ojo-buey offline';
+            document.getElementById('status-text').innerText = 'ERROR BROKER';
         });
     </script>
 </body>
