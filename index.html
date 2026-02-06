@@ -1,36 +1,149 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SCADA ESP32</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCADA ESP32 WAN</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #1e222d;
+            --card-bg: #2b303f;
+            --text-main: #ffffff;
+            --text-dim: #b1b5be;
+            --green-btn: #66bb6a;
+            --red-alert: #ef5350;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 { margin: 5px 0; font-size: 1.8rem; letter-spacing: 1px; }
+        .header p { color: var(--text-dim); font-size: 0.9rem; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .card h3 {
+            margin: 0 0 15px 0;
+            color: var(--text-dim);
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        .val-large { font-size: 3rem; font-weight: bold; margin: 10px 0; }
+        
+        .pill {
+            display: inline-block;
+            width: 80%;
+            padding: 12px;
+            border-radius: 30px;
+            font-weight: bold;
+            background: #3d445a;
+            transition: 0.3s;
+        }
+
+        .active-sw { background: var(--green-btn); color: white; }
+        .active-alarm { background: var(--red-alert); color: white; }
+
+        @media (max-width: 480px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>SCADA ESP32</h1>
-    <p>Telemetría WAN (solo lectura)</p>
-<button id="toggleBtn">Toggle LED</button>
-    <div class="grid">
-      <div class="card">
-        <div class="title">Potenciómetro</div>
-        <div class="value" id="pot">--%</div>
-      </div>
-      <div class="card">
-        <div class="title">Switch</div>
-        <div class="value btn" id="sw">OFF</div>
-      </div>
-      <div class="card">
-        <div class="title">Alarma</div>
-        <div class="value btn" id="alarm">OK</div>
-      </div>
-      <div class="card">
-        <div class="title">Evento</div>
-        <div class="value" id="event">--</div>
-      </div>
-    </div>
-  </div>
 
-  <script src="script.js"></script>
+    <div class="header">
+        <h1 id="clock">00:00:00</h1>
+        <h1>SCADA ESP32</h1>
+        <p>Telemetría WAN (solo lectura)</p>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Potenciómetro</h3>
+            <div class="val-large"><span id="pot">0</span>%</div>
+        </div>
+
+        <div class="card">
+            <h3>Switch</h3>
+            <div id="sw-pill" class="pill">OFF</div>
+        </div>
+
+        <div class="card">
+            <h3>Alarma</h3>
+            <div id="alarm-pill" class="pill">OK</div>
+        </div>
+
+        <div class="card">
+            <h3>Evento</h3>
+            <p id="event-log" style="color: var(--text-dim);">Sincronizando...</p>
+        </div>
+    </div>
+
+    <script>
+        // Reloj
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        // Conexión MQTT (HiveMQ WebSockets Puerto 8884 para SSL)
+        const client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+
+        client.on('connect', () => {
+            console.log("Conectado al Broker");
+            client.subscribe('esp32/telemetria/pot');
+            client.subscribe('esp32/telemetria/switch');
+            client.subscribe('esp32/alarmas/estado');
+            client.subscribe('esp32/eventos/boton');
+        });
+
+        client.on('message', (topic, message) => {
+            const val = message.toString();
+            
+            if (topic.includes('pot')) {
+                document.getElementById('pot').innerText = val;
+            } 
+            else if (topic.includes('switch')) {
+                const p = document.getElementById('sw-pill');
+                p.innerText = val === "1" ? "ON" : "OFF";
+                val === "1" ? p.classList.add('active-sw') : p.classList.remove('active-sw');
+            }
+            else if (topic.includes('estado')) {
+                const p = document.getElementById('alarm-pill');
+                p.innerText = val === "1" ? "ACTIVA" : "OK";
+                val === "1" ? p.classList.add('active-alarm') : p.classList.remove('active-alarm');
+            }
+            else if (topic.includes('boton')) {
+                document.getElementById('event-log').innerText = val;
+            }
+        });
+    </script>
 </body>
 </html>
