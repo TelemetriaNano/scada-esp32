@@ -2,30 +2,39 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>SCADA ESP32 – Telemetría</title>
+  <title>SCADA ESP32 – WAN</title>
   <link rel="stylesheet" href="styles.css">
-  <!-- MQTT.js -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
 
-  <h1>📡 SCADA ESP32 – WAN</h1>
+<header>
+  <h2>SCADA ESP32</h2>
+  <small>Telemetría WAN (solo lectura)</small>
+</header>
 
-  <div class="card">
-    <h2>Estado de conexión</h2>
-    <p id="status" class="offline">Desconectado</p>
+<main>
+  <div class="card" id="potCard">
+    <h3>Potenciómetro</h3>
+    <div class="value"><span id="pot">--</span>%</div>
   </div>
 
   <div class="card">
-    <h2>Telemetría</h2>
-    <p>Temperatura: <span id="temp">--</span> °C</p>
-    <p>Humedad: <span id="hum">--</span> %</p>
+    <h3>Switch</h3>
+    <div id="sw" class="badge off">OFF</div>
   </div>
 
-  <footer>
-    ESP32 · MQTT · GitHub Pages
-  </footer>
+  <div class="card">
+    <h3>Alarma</h3>
+    <div id="alarm" class="badge off">OK</div>
+  </div>
 
-  <script src="script.js"></script>
+  <div class="card">
+    <h3>Evento</h3>
+    <div id="event">--</div>
+  </div>
+</main>
+
+<script src="script.js"></script>
 </body>
 </html>

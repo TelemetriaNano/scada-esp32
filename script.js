@@ -1,43 +1,30 @@
-// Broker MQTT público con WebSocket
 const broker = "wss://broker.hivemq.com:8884/mqtt";
 
-// Tópicos (deben coincidir con el ESP32)
-const topicTemp = "esp32/telemetria/temperatura";
-const topicHum  = "esp32/telemetria/humedad";
-
-const options = {
-  clientId: "scada_web_" + Math.random().toString(16).substr(2, 8),
-  clean: true,
-  connectTimeout: 4000
-};
-
-const client = mqtt.connect(broker, options);
-
-const statusEl = document.getElementById("status");
-const tempEl   = document.getElementById("temp");
-const humEl    = document.getElementById("hum");
+const client = mqtt.connect(broker, {
+  clientId: "scada_web_" + Math.random().toString(16).substr(2,8)
+});
 
 client.on("connect", () => {
-  console.log("Conectado a MQTT");
-  statusEl.textContent = "Conectado";
-  statusEl.className = "online";
-
-  client.subscribe([topicTemp, topicHum]);
+  client.subscribe([
+    "esp32/telemetria/pot",
+    "esp32/telemetria/switch",
+    "esp32/alarmas/estado",
+    "esp32/eventos/boton"
+  ]);
 });
 
-client.on("message", (topic, message) => {
-  const value = message.toString();
+client.on("message", (topic, msg) => {
+  const v = msg.toString();
 
-  if (topic === topicTemp) {
-    tempEl.textContent = value;
+  if (topic.endsWith("/pot")) pot.innerText = v;
+  if (topic.endsWith("/switch")) {
+    sw.innerText = v === "1" ? "ON" : "OFF";
+    sw.className = "badge " + (v === "1" ? "on":"off");
   }
-
-  if (topic === topicHum) {
-    humEl.textContent = value;
+  if (topic.endsWith("/estado")) {
+    alarm.innerText = v === "1" ? "ALARM" : "OK";
+    alarm.className = "badge " + (v === "1" ? "warn":"off");
+    potCard.classList.toggle("warn", v === "1");
   }
-});
-
-client.on("close", () => {
-  statusEl.textContent = "Desconectado";
-  statusEl.className = "offline";
+  if (topic.endsWith("/boton")) event.innerText = v;
 });
