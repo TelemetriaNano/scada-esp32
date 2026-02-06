@@ -1,30 +1,40 @@
-const broker = "wss://broker.hivemq.com:8884/mqtt";
+async function updateStatus() {
+  try {
+    const response = await fetch('/status');
+    if (!response.ok) return;
 
-const client = mqtt.connect(broker, {
-  clientId: "scada_web_" + Math.random().toString(16).substr(2,8)
-});
+    const data = await response.json();
 
-client.on("connect", () => {
-  client.subscribe([
-    "esp32/telemetria/pot",
-    "esp32/telemetria/switch",
-    "esp32/alarmas/estado",
-    "esp32/eventos/boton"
-  ]);
-});
+    const pot = document.getElementById('pot');
+    const sw = document.getElementById('sw');
+    const led = document.getElementById('led');
+    const potCard = document.getElementById('potCard');
 
-client.on("message", (topic, msg) => {
-  const v = msg.toString();
+    pot.innerText = data.pot;
+    sw.innerText = data.sw ? 'ON' : 'OFF';
+    sw.className = 'badge ' + (data.sw ? 'on' : 'off');
 
-  if (topic.endsWith("/pot")) pot.innerText = v;
-  if (topic.endsWith("/switch")) {
-    sw.innerText = v === "1" ? "ON" : "OFF";
-    sw.className = "badge " + (v === "1" ? "on":"off");
+    led.innerText = data.led ? 'ON' : 'OFF';
+    led.className = 'badge ' + (data.led ? 'on' : 'off');
+
+    if (data.alarm) {
+      potCard.classList.add('warn');
+    } else {
+      potCard.classList.remove('warn');
+    }
+  } catch (err) {
+    console.error('Error al actualizar status', err);
   }
-  if (topic.endsWith("/estado")) {
-    alarm.innerText = v === "1" ? "ALARM" : "OK";
-    alarm.className = "badge " + (v === "1" ? "warn":"off");
-    potCard.classList.toggle("warn", v === "1");
+}
+
+document.getElementById('toggleBtn').addEventListener('click', async () => {
+  try {
+    await fetch('/toggle', { method: 'POST' });
+  } catch (err) {
+    console.error('Error al togglear LED', err);
   }
-  if (topic.endsWith("/boton")) event.innerText = v;
 });
+
+// Actualización periódica cada 1 segundo
+setInterval(updateStatus, 1000);
+updateStatus();

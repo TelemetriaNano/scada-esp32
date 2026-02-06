@@ -2,39 +2,24 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>SCADA ESP32 – WAN</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ESP32 SCADA</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
+  <h1>ESP32 SCADA</h1>
 
-<header>
-  <h2>SCADA ESP32</h2>
-  <small>Telemetría WAN (solo lectura)</small>
-</header>
-
-<main>
   <div class="card" id="potCard">
-    <h3>Potenciómetro</h3>
-    <div class="value"><span id="pot">--</span>%</div>
+    Potenciómetro: <b><span id="pot">--</span>%</b>
   </div>
-
   <div class="card">
-    <h3>Switch</h3>
-    <div id="sw" class="badge off">OFF</div>
+    Switch: <span id="sw" class="badge">--</span>
   </div>
-
   <div class="card">
-    <h3>Alarma</h3>
-    <div id="alarm" class="badge off">OK</div>
+    LED: <span id="led" class="badge">--</span>
   </div>
+  <button id="toggleBtn">Toggle LED</button>
 
-  <div class="card">
-    <h3>Evento</h3>
-    <div id="event">--</div>
-  </div>
-</main>
-
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
