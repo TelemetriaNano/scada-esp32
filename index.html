@@ -3,108 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCADA WAN - Control Global</title>
+    <title>SCADA WAN - Navegación</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
         :root { 
             --bg: #1e222d; --card: #2b303f; --text: #ffffff; 
-            --dim: #b1b5be; --green: #66bb6a; --red: #ef5350; 
+            --dim: #b1b5be; --green: #66bb6a; --red: #ef5350; --accent: #42a5f5;
         }
         
         body { 
             background: var(--bg); color: var(--text); 
-            font-family: 'Segoe UI', sans-serif; display: flex; 
-            flex-direction: column; align-items: center; padding: 20px; 
-            margin: 0; min-height: 100vh; 
+            font-family: 'Segoe UI', sans-serif; margin: 0; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
 
-        /* Pantalla de Login */
+        /* Login Overlay */
         #login-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 1000;
         }
-        .login-card {
-            background: var(--card); padding: 30px; border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; width: 300px;
-        }
-        .login-input {
-            width: 90%; padding: 12px; margin: 15px 0; border-radius: 8px;
-            border: 1px solid #3d445a; background: #1e222d; color: white; text-align: center;
+
+        /* Contenedor Principal de Páginas */
+        #main-content { 
+            display: none; width: 100%; max-width: 450px; position: relative; 
+            padding: 20px; box-sizing: border-box;
         }
 
-        /* Estructura Principal */
-        .header { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; width: 100%; max-width: 500px; justify-content: center; }
-        .ojo-buey { width: 15px; height: 15px; background: #444; border-radius: 50%; transition: 0.3s; }
-        .online { background: var(--green); box-shadow: 0 0 12px var(--green); animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .page { display: none; flex-direction: column; align-items: center; animation: fadeIn 0.4s; }
+        .page.active { display: flex; }
 
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; width: 100%; max-width: 500px; }
-        .card { background: var(--card); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        .val { font-size: 2.5rem; font-weight: bold; margin: 10px 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Tarjetas y Estilos (Igual al Local) */
+        .card { 
+            background: var(--card); border-radius: 15px; padding: 25px; 
+            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            width: 100%; margin-bottom: 15px; box-sizing: border-box;
+        }
+        .val { font-size: 3rem; font-weight: bold; margin: 10px 0; }
+        .label { font-size: 0.9rem; color: var(--dim); font-weight: bold; text-transform: uppercase; }
         
-        /* Botones Estilo Local */
-        .btn { width: 85%; padding: 12px; border-radius: 30px; border: none; font-weight: bold; cursor: pointer; background: #3d445a; color: white; transition: 0.3s; text-transform: uppercase; }
-        .active-led { background: var(--green); box-shadow: 0 0 10px var(--green); }
+        .btn { 
+            width: 100%; padding: 15px; border-radius: 30px; border: none; 
+            font-weight: bold; cursor: pointer; background: #3d445a; 
+            color: white; transition: 0.3s; text-transform: uppercase; 
+        }
+        .active-led { background: var(--green); box-shadow: 0 0 15px var(--green); }
         .active-alarm { background: var(--red); box-shadow: 0 0 10px var(--red); }
-        
-        .label { font-size: 0.9rem; color: var(--dim); margin-bottom: 5px; font-weight: bold; }
-        .count-tag { font-size: 0.75rem; color: var(--dim); margin-top: 8px; }
 
-        #main-content { display: none; width: 100%; max-width: 500px; flex-direction: column; align-items: center; }
-        @media (max-width: 450px) { .grid { grid-template-columns: 1fr; } }
+        /* Navegación */
+        .nav-container { 
+            display: flex; justify-content: space-between; align-items: center; 
+            width: 100%; margin-top: 20px; 
+        }
+        .nav-arrow { 
+            background: var(--card); color: var(--accent); border: 1px solid var(--accent);
+            width: 50px; height: 50px; border-radius: 50%; display: flex; 
+            align-items: center; justify-content: center; cursor: pointer; 
+            font-size: 1.5rem; transition: 0.3s;
+        }
+        .nav-arrow:hover { background: var(--accent); color: white; }
+        .page-indicator { color: var(--dim); font-size: 0.8rem; letter-spacing: 2px; }
+
+        /* Ojo de Buey */
+        .status-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .ojo-buey { width: 12px; height: 12px; background: #444; border-radius: 50%; }
+        .online { background: var(--green); box-shadow: 0 0 10px var(--green); }
     </style>
 </head>
 <body>
 
     <div id="login-overlay">
-        <div class="login-card">
-            <h3>Acceso WAN</h3>
-            <input type="password" id="passInput" class="login-input" placeholder="Contraseña">
+        <div class="card" style="width: 300px;">
+            <h3 style="margin-top:0;">Acceso Sistema</h3>
+            <input type="password" id="passInput" style="width:90%; padding:10px; margin:15px 0; background:#1e222d; border:1px solid #3d445a; color:white; text-align:center; border-radius:8px;" placeholder="Contraseña">
             <button class="btn active-led" onclick="checkPass()">ENTRAR</button>
         </div>
     </div>
 
     <div id="main-content">
-        <div class="header">
+        
+        <div class="status-header">
             <div id="status-led" class="ojo-buey"></div>
-            <h2 style="margin:0;">SCADA WAN CONTROL</h2>
+            <span id="status-text" style="font-size: 0.7rem; color: var(--dim);">DISPOSITIVO OFFLINE</span>
         </div>
 
-        <div class="grid">
+        <div id="page1" class="page active">
             <div class="card">
-                <div class="label">POTENCIÓMETRO</div>
+                <div class="label">Potenciómetro</div>
                 <div class="val"><span id="pot">--</span>%</div>
             </div>
-
             <div class="card">
-                <div class="label">LED MANUAL</div>
-                <button id="btn-led" class="btn" onclick="toggleLED()">APAGADO</button>
+                <div class="label">Alarma</div>
+                <div id="alm-box" class="btn" style="cursor: default;">NORMAL</div>
+                <div style="font-size: 0.8rem; color: var(--dim); margin-top:10px;">Activaciones: <span id="counter">0</span></div>
             </div>
-
             <div class="card">
-                <div class="label">ALARMA</div>
-                <div id="alm-box" class="btn">OK</div>
-                <div class="count-tag">Activaciones: <span id="counter">0</span></div>
+                <div class="label">Estado Switch</div>
+                <div id="sw-status" style="font-size: 1.2rem; margin-top:10px; font-weight:bold;">--</div>
             </div>
-
-            <div class="card">
-                <div class="label">SWITCH FÍSICO</div>
-                <div id="sw-status" style="font-size: 1.1rem; margin-top:10px; font-weight:bold;">--</div>
+            
+            <div class="nav-container">
+                <div></div> <div class="page-indicator">DATOS • CONTROL</div>
+                <div class="nav-arrow" onclick="changePage(2)">→</div>
             </div>
         </div>
+
+        <div id="page2" class="page">
+            <div class="card" style="padding: 60px 25px;">
+                <div class="label" style="margin-bottom: 30px;">Control Manual de Actuador</div>
+                <button id="btn-led" class="btn" onclick="toggleLED()" style="height: 100px; font-size: 1.5rem;">APAGADO</button>
+                <p style="color: var(--dim); margin-top: 20px; font-size: 0.8rem;">Presione para conmutar estado</p>
+            </div>
+
+            <div class="nav-container">
+                <div class="nav-arrow" onclick="changePage(1)">←</div>
+                <div class="page-indicator">DATOS • CONTROL</div>
+                <div></div> </div>
+        </div>
+
     </div>
 
     <script>
         let client;
-        let ledState = false; // Estado local de la variable en la web
+        let ledState = false;
 
         function checkPass() {
             if (document.getElementById('passInput').value === "Nano01") {
                 document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('main-content').style.display = 'flex';
+                document.getElementById('main-content').style.display = 'block';
                 initMQTT();
             }
+        }
+
+        // Navegación entre páginas
+        function changePage(pageNum) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page' + pageNum).classList.add('active');
         }
 
         function initMQTT() {
@@ -113,6 +149,7 @@
 
             client.on('connect', () => {
                 document.getElementById('status-led').classList.add('online');
+                document.getElementById('status-text').innerText = "DISPOSITIVO CONECTADO (WAN)";
                 client.subscribe("esp32/telemetria/#");
                 client.subscribe("esp32/alarmas/#");
             });
@@ -132,23 +169,19 @@
             });
         }
 
-        // Función corregida para funcionar sin feedback del ESP32
         function toggleLED() {
             if (client && client.connected) {
-                ledState = !ledState; // Cambiamos el estado localmente
+                ledState = !ledState;
                 const btn = document.getElementById('btn-led');
+                const val = ledState ? "1" : "0";
+                client.publish("esp32/control/led", val);
                 
-                if (ledState) {
-                    client.publish("esp32/control/led", "1");
-                    btn.innerText = "ENCENDIDO";
-                    btn.classList.add('active-led');
-                } else {
-                    client.publish("esp32/control/led", "0");
-                    btn.innerText = "APAGADO";
-                    btn.classList.remove('active-led');
-                }
+                btn.innerText = ledState ? "ENCENDIDO" : "APAGADO";
+                ledState ? btn.classList.add('active-led') : btn.classList.remove('active-led');
             }
         }
+
+        document.getElementById('passInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPass(); });
     </script>
 </body>
 </html>
