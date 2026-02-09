@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCADA WAN - Proyecto #1</title>
+    <title>SCADA WAN - Telemetría NANO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
         :root { 
@@ -17,7 +17,13 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
-        /* --- HEADER CORPORATIVO --- */
+        /* Login Overlay */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 2000;
+        }
+
         .top-bar {
             width: 100%; max-width: 500px; padding: 20px;
             display: flex; justify-content: space-between; align-items: center;
@@ -25,20 +31,8 @@
         }
         .brand { line-height: 1.1; font-weight: bold; font-size: 0.9rem; text-transform: uppercase; }
         .brand span { color: var(--accent); }
-        .user-info { font-size: 0.75rem; color: var(--dim); text-align: right; }
 
-        /* Login Overlay */
-        #login-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 1000;
-        }
-
-        /* Contenedor Principal */
-        #main-content { 
-            display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box;
-        }
-
+        #main-content { display: none; width: 100%; max-width: 450px; padding: 15px; box-sizing: border-box; }
         .page { display: none; flex-direction: column; align-items: center; animation: fadeIn 0.4s; }
         .page.active { display: flex; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -49,29 +43,22 @@
             width: 100%; margin-bottom: 15px; box-sizing: border-box;
         }
         .val { font-size: 2.8rem; font-weight: bold; margin: 10px 0; }
-        .label { font-size: 0.8rem; color: var(--dim); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .label { font-size: 0.75rem; color: var(--dim); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Botones y Estados */
         .btn { 
             width: 100%; padding: 12px; border-radius: 30px; border: none; 
-            font-weight: bold; background: #3d445a; color: white; text-transform: uppercase; 
+            font-weight: bold; background: #3d445a; color: white; text-transform: uppercase; cursor: pointer;
         }
         .active-led { background: var(--green); box-shadow: 0 0 15px var(--green); }
         .active-alarm { background: var(--red); box-shadow: 0 0 10px var(--red); }
 
-        /* Navegación Inferior */
-        .nav-container { 
-            display: flex; justify-content: space-between; align-items: center; 
-            width: 100%; margin-top: 10px; 
-        }
+        .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; }
         .nav-arrow { 
             background: var(--card); color: var(--accent); border: 1px solid var(--accent);
             width: 45px; height: 45px; border-radius: 50%; display: flex; 
-            align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;
+            align-items: center; justify-content: center; cursor: pointer;
         }
-        .nav-arrow:hover { background: var(--accent); color: white; }
 
-        /* Status LED */
         .status-header { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 15px; }
         .ojo-buey { width: 10px; height: 10px; background: #444; border-radius: 50%; }
         .online { background: var(--green); box-shadow: 0 0 8px var(--green); }
@@ -89,35 +76,31 @@
 
     <div id="header-brand" class="top-bar" style="display:none;">
         <div class="brand">TELEMETRÍA<br><span>NANO</span></div>
-        <div class="user-info">Usuario<br>Proyecto #1</div>
+        <div style="text-align: right;">
+            <div id="status-led" class="ojo-buey" style="display:inline-block;"></div>
+            <div id="status-text" style="font-size: 0.6rem; color: var(--dim);">DESCONECTADO</div>
+        </div>
     </div>
 
     <div id="main-content">
         
-        <div class="status-header">
-            <div id="status-led" class="ojo-buey"></div>
-            <span id="status-text" style="font-size: 0.7rem; color: var(--dim);">CONECTANDO...</span>
-        </div>
-
         <div id="page1" class="page active">
             <div class="card">
-                <div class="label">Potenciómetro</div>
+                <div class="label">Potenciómetro (ESP 1)</div>
                 <div class="val"><span id="pot">--</span>%</div>
             </div>
             
             <div class="card">
-                <div class="label">Estado Alarma</div>
-                <div style="display: flex; justify-content: center; margin-top: 10px;">
-                    <div id="alm-box" class="btn" style="max-width: 200px; cursor: default;">NORMAL</div>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--dim); margin-top:12px;">Activaciones Totales: <span id="counter">0</span></div>
+                <div class="label">Alarma Analógica</div>
+                <div id="alm-box" class="btn" style="margin-top:10px; cursor:default;">NORMAL</div>
+                <div style="font-size: 0.7rem; color: var(--dim); margin-top:10px;">Activaciones: <span id="counter">0</span></div>
             </div>
 
-            <div class="card">
-                <div class="label">Switch Físico</div>
-                <div id="sw-status" style="font-size: 1.1rem; margin-top:10px; font-weight:bold;">--</div>
+            <div class="card" style="border: 1px solid var(--accent);">
+                <div class="label" style="color: var(--accent);">Pulsador (ESP 2)</div>
+                <div id="p2-status" style="font-size: 1.5rem; margin-top:10px; font-weight:bold;">ESPERANDO...</div>
             </div>
-            
+
             <div class="nav-container">
                 <div style="width:45px"></div>
                 <span style="font-size:0.7rem; color:var(--dim); letter-spacing:2px;">MONITOREO</span>
@@ -126,12 +109,12 @@
         </div>
 
         <div id="page2" class="page">
-            <div class="card" style="padding: 40px 20px;">
-                <div class="label">Control de Salida</div>
+            <div class="card">
+                <div class="label">Control de Salida (ESP 1)</div>
                 <div style="display:flex; justify-content:center; margin: 30px 0;">
-                    <button id="btn-led" class="btn" onclick="toggleLED()" style="height: 120px; width: 120px; border-radius: 50%; font-size: 0.8rem; border: 4px solid #1e222d;">APAGADO</button>
+                    <button id="btn-led" class="btn" onclick="toggleLED()" style="height: 120px; width: 120px; border-radius: 50%; border: 4px solid #1e222d;">OFF</button>
                 </div>
-                <p style="color: var(--dim); font-size: 0.8rem;">Toque el círculo para conmutar</p>
+                <div class="label" id="sw-status">Switch Físico: --</div>
             </div>
 
             <div class="nav-container">
@@ -140,7 +123,6 @@
                 <div style="width:45px"></div>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -153,12 +135,12 @@
                 document.getElementById('main-content').style.display = 'block';
                 document.getElementById('header-brand').style.display = 'flex';
                 initMQTT();
-            }
+            } else { alert("Clave Incorrecta"); }
         }
 
-        function changePage(pageNum) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('page' + pageNum).classList.add('active');
+        function changePage(p) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById('page' + p).classList.add('active');
         }
 
         function initMQTT() {
@@ -167,38 +149,50 @@
 
             client.on('connect', () => {
                 document.getElementById('status-led').classList.add('online');
-                document.getElementById('status-text').innerText = "VINCULADO AL BROKER";
+                document.getElementById('status-text').innerText = "VINCULADO";
+                // Suscripciones ESP 1
                 client.subscribe("esp32/telemetria/#");
                 client.subscribe("esp32/alarmas/#");
+                client.subscribe("esp32/control/led");
+                // Suscripciones ESP 2
+                client.subscribe("esp32_2/telemetria/pulsador");
             });
 
             client.on('message', (topic, message) => {
                 const msg = message.toString();
+                
+                // Lógica ESP 1
                 if (topic === "esp32/telemetria/pot") document.getElementById('pot').innerText = msg;
                 if (topic === "esp32/alarmas/conteo") document.getElementById('counter').innerText = msg;
                 if (topic === "esp32/telemetria/switch") {
-                    document.getElementById('sw-status').innerText = (msg === "1") ? "CERRADO" : "ABIERTO";
+                    document.getElementById('sw-status').innerText = "Switch Físico: " + (msg === "1" ? "CERRADO" : "ABIERTO");
                 }
                 if (topic === "esp32/alarmas/estado") {
                     const alm = document.getElementById('alm-box');
                     alm.innerText = (msg === "1") ? "ALERTA" : "NORMAL";
-                    (msg === "1") ? alm.classList.add('active-alarm') : alm.classList.remove('active-alarm');
+                    msg === "1" ? alm.classList.add('active-alarm') : alm.classList.remove('active-alarm');
+                }
+                if (topic === "esp32/control/led") {
+                    ledState = (msg === "1");
+                    const btn = document.getElementById('btn-led');
+                    btn.innerText = ledState ? "ON" : "OFF";
+                    ledState ? btn.classList.add('active-led') : btn.classList.remove('active-led');
+                }
+
+                // Lógica ESP 2 (Nuevo)
+                if (topic === "esp32_2/telemetria/pulsador") {
+                    const p2 = document.getElementById('p2-status');
+                    p2.innerText = (msg === "1") ? "PULSADO" : "LIBRE";
+                    p2.style.color = (msg === "1") ? "var(--green)" : "var(--dim)";
                 }
             });
         }
 
         function toggleLED() {
             if (client && client.connected) {
-                ledState = !ledState;
-                const btn = document.getElementById('btn-led');
-                client.publish("esp32/control/led", ledState ? "1" : "0");
-                btn.innerText = ledState ? "ENCENDIDO" : "APAGADO";
-                ledState ? btn.classList.add('active-led') : btn.classList.remove('active-led');
+                client.publish("esp32/control/led", ledState ? "0" : "1", {retain: true});
             }
         }
-
-        document.getElementById('passInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') checkPass(); });
     </script>
 </body>
 </html>
-
