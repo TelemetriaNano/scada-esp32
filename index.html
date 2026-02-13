@@ -3,107 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCADA NANO - Control Total</title>
+    <title>SCADA NANO - Panel Privado</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
         :root { 
-            --bg: #1e222d; --card: #2b303f; --text: #ffffff; 
-            --dim: #b1b5be; --green: #66bb6a; --red: #ef5350; --accent: #42a5f5;
+            --bg: #0f121a; --card: #1d212e; --text: #eceff4; 
+            --dim: #81899a; --green: #88c0d0; --red: #bf616a; --accent: #5e81ac;
         }
         body { 
             background: var(--bg); color: var(--text); 
-            font-family: 'Segoe UI', sans-serif; margin: 0; min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; min-height: 100vh;
             display: flex; flex-direction: column; align-items: center;
         }
-        /* Login */
+        /* Overlay de Seguridad */
         #login-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); display: flex; justify-content: center; align-items: center; z-index: 2000;
         }
-        /* Estructura */
         .top-bar {
-            width: 100%; max-width: 500px; padding: 20px;
+            width: 100%; max-width: 600px; padding: 20px;
             display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #3d445a;
+            border-bottom: 1px solid #2e3440; box-sizing: border-box;
         }
-        #main-content { display: none; width: 100%; max-width: 450px; padding: 15px; }
-        .page { display: none; flex-direction: column; align-items: center; animation: fadeIn 0.4s; }
+        #main-content { display: none; width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; }
+        .page { display: none; flex-direction: column; align-items: center; animation: fadeIn 0.4s ease-out; }
         .page.active { display: flex; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .card { 
-            background: var(--card); border-radius: 15px; padding: 20px; 
-            text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
-            width: 100%; margin-bottom: 15px; box-sizing: border-box;
+            background: var(--card); border-radius: 20px; padding: 25px; 
+            text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); 
+            width: 100%; margin-bottom: 20px; box-sizing: border-box; border: 1px solid #2e3440;
         }
-        .val { font-size: 2.8rem; font-weight: bold; margin: 5px 0; color: var(--accent); }
-        .label { font-size: 0.7rem; color: var(--dim); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .val { font-size: 3.5rem; font-weight: 800; margin: 10px 0; color: var(--accent); }
+        .label { font-size: 0.75rem; color: var(--dim); font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; }
         
-        /* Botones */
-        .btn { width: 100%; padding: 12px; border-radius: 30px; border: none; font-weight: bold; background: #3d445a; color: white; cursor: pointer; }
-        .active-led { background: var(--green); color: #111; box-shadow: 0 0 15px var(--green); }
-        .active-alarm { background: var(--red); box-shadow: 0 0 10px var(--red); }
+        /* Controles */
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: bold; background: #3b4252; color: white; cursor: pointer; transition: 0.3s; }
+        .active-led { background: var(--green); color: #2e3440; box-shadow: 0 0 20px rgba(136, 192, 208, 0.4); }
+        .active-alarm { background: var(--red); color: white; animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0px var(--red); } 50% { box-shadow: 0 0 20px var(--red); } 100% { box-shadow: 0 0 0px var(--red); } }
         
-        .nav-container { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 10px; }
-        .nav-arrow { background: var(--card); color: var(--accent); border: 1px solid var(--accent); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .nav-arrow { background: var(--card); color: var(--accent); border: 2px solid var(--accent); width: 50px; height: 50px; border-radius: 15px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.5rem; transition: 0.2s; }
+        .nav-arrow:active { transform: scale(0.9); }
         
-        .ojo-buey { width: 10px; height: 10px; background: #444; border-radius: 50%; display: inline-block; }
-        .online { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .ojo-buey { width: 14px; height: 14px; background: #3b4252; border-radius: 50%; transition: 0.3s; }
+        .online { background: var(--green); box-shadow: 0 0 10px var(--green); }
     </style>
 </head>
 <body>
 
     <div id="login-overlay">
-        <div class="card" style="width: 280px;">
-            <h3>SCADA LOGIN</h3>
-            <input type="password" id="passInput" style="width:90%; padding:10px; margin-bottom:15px; background:#1e222d; border:1px solid #3d445a; color:white; text-align:center; border-radius:8px;" placeholder="Contraseña">
-            <button class="btn active-led" onclick="checkPass()">ENTRAR</button>
+        <div class="card" style="max-width: 320px;">
+            <h2 style="color:var(--accent)">NANO SCADA</h2>
+            <p class="label">Acceso Restringido</p>
+            <input type="password" id="passInput" style="width:100%; padding:15px; margin:20px 0; background:#0f121a; border:1px solid #3b4252; color:white; text-align:center; border-radius:10px; box-sizing: border-box;" placeholder="PIN de Seguridad">
+            <button class="btn active-led" onclick="checkPass()">ENTRAR AL SISTEMA</button>
         </div>
     </div>
 
     <div id="header-brand" class="top-bar" style="display:none;">
-        <div style="font-weight:bold;">TELEMETRÍA <span style="color:var(--accent)">NANO</span></div>
-        <div id="status-led" class="ojo-buey"></div>
+        <div style="font-weight:800; letter-spacing: 1px;">SISTEMA <span style="color:var(--accent)">NANO-WAN</span></div>
+        <div id="status-led" class="ojo-buey" title="Estado de Conexión"></div>
     </div>
 
     <div id="main-content">
         
         <div id="page1" class="page active">
             <div class="card">
-                <div class="label">Potenciómetro ESP 1</div>
-                <div class="val"><span id="pot">--</span>%</div>
+                <div class="label">Nivel de Potenciómetro</div>
+                <div class="val"><span id="pot">0</span><span style="font-size:1.5rem">%</span></div>
             </div>
 
-            <div class="card" style="border-left: 5px solid var(--accent);">
-                <div class="label">Pulsador ESP 2</div>
-                <div id="p2-status" style="margin: 10px 0; font-weight: bold;">ESPERANDO...</div>
-                <hr style="border: 0; border-top: 1px solid #3d445a; margin: 10px 0;">
-                <div class="label">Contador Flash</div>
-                <div id="p2-count" style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">0</div>
+            <div class="card" style="border-top: 4px solid var(--accent);">
+                <div class="label">Alertas de Sistema</div>
+                <div id="alm-box" class="btn" style="cursor:default; margin-top:15px; background: #2e3440;">SISTEMA NORMAL</div>
+                <div style="margin-top:20px;">
+                    <span class="label">Total Alarmas:</span>
+                    <span id="p2-count" style="font-size: 1.2rem; font-weight: bold; color: var(--accent); margin-left: 10px;">0</span>
+                </div>
             </div>
 
-            <div class="card">
-                <div id="alm-box" class="btn" style="cursor:default;">ESTADO NORMAL</div>
-            </div>
-
-            <div class="nav-container">
-                <div style="width:45px"></div>
-                <span style="font-size:0.7rem; color:var(--dim);">PANEL DE CONTROL</span>
+            <div style="display:flex; justify-content: space-between; width:100%; align-items:center;">
+                <div style="width:50px"></div>
+                <span class="label">Dashboard de Control</span>
                 <div class="nav-arrow" onclick="changePage(2)">→</div>
             </div>
         </div>
 
         <div id="page2" class="page">
             <div class="card">
-                <div class="label">LED Remoto ESP 1</div>
-                <button id="btn-led" class="btn" onclick="toggleLED()" style="margin: 20px 0; height: 80px; font-size: 1.2rem;">APAGADO</button>
-                <div class="label" id="sw-status">Switch Físico ESP 1: --</div>
+                <div class="label">Mando Manual de Actuador</div>
+                <button id="btn-led" class="btn" onclick="toggleLED()" style="margin: 25px 0; height: 100px; font-size: 1.4rem; border-radius: 20px;">CONECTANDO...</button>
+                <div id="sw-status" class="label" style="background:#0f121a; padding:10px; border-radius:8px;">Switch Físico: --</div>
             </div>
 
-            <div class="nav-container">
+            <div class="card">
+                <div class="label">Historial de Eventos</div>
+                <div id="p2-status" style="margin-top:10px; font-size:0.9rem; font-weight: bold; color: var(--dim);">SIN EVENTOS RECIENTES</div>
+            </div>
+
+            <div style="display:flex; justify-content: space-between; width:100%; align-items:center;">
                 <div class="nav-arrow" onclick="changePage(1)">←</div>
-                <span style="font-size:0.7rem; color:var(--dim);">VOLVER</span>
-                <div style="width:45px"></div>
+                <span class="label">Volver al Monitor</span>
+                <div style="width:50px"></div>
             </div>
         </div>
 
@@ -113,13 +116,21 @@
         let client;
         let ledState = false;
 
+        // --- Configuración Broker Privado (HiveMQ Cloud) ---
+        // Usamos el puerto 8884 porque es el estándar para WebSockets Seguro (WSS)
+        const MQTT_HOST = 'wss://430b579b966d4e73a269ce0c803564a7.s1.eu.hivemq.cloud:8884/mqtt';
+        const MQTT_USER = 'Telemetria-Nano'; 
+        const MQTT_PASS = 'Telemetria01'; 
+
         function checkPass() {
             if (document.getElementById('passInput').value === "Nano01") {
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
                 document.getElementById('header-brand').style.display = 'flex';
                 initMQTT();
-            } else { alert("Error"); }
+            } else { 
+                alert("PIN Incorrecto"); 
+            }
         }
 
         function changePage(n) {
@@ -128,52 +139,82 @@
         }
 
         function initMQTT() {
-            client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+            const options = {
+                clientId: 'WEB_CLIENT_' + Math.random().toString(16).substr(2, 5),
+                username: MQTT_USER,
+                password: MQTT_PASS,
+                clean: true
+            };
+
+            client = mqtt.connect(MQTT_HOST, options);
 
             client.on('connect', () => {
                 document.getElementById('status-led').classList.add('online');
-                // Suscribir a TODO
-                client.subscribe("esp32/telemetria/#");
-                client.subscribe("esp32/alarmas/#");
+                document.getElementById('btn-led').innerText = "APAGADO";
+                
+                // Suscripciones a los tópicos del ESP32
+                client.subscribe("esp32/telemetria/pot");
+                client.subscribe("esp32/telemetria/switch");
+                client.subscribe("esp32/alarmas/estado");
+                client.subscribe("esp32/alarmas/conteo");
                 client.subscribe("esp32/control/led");
-                client.subscribe("esp32_2/telemetria/#");
+                client.subscribe("esp32/eventos/boton");
+                client.subscribe("esp32/eventos/log");
             });
 
             client.on('message', (topic, message) => {
                 const msg = message.toString();
                 
-                // ESP 1
-                if (topic === "esp32/telemetria/pot") document.getElementById('pot').innerText = msg;
+                if (topic === "esp32/telemetria/pot") {
+                    document.getElementById('pot').innerText = msg;
+                }
+                
                 if (topic === "esp32/alarmas/estado") {
                     const b = document.getElementById('alm-box');
-                    b.innerText = msg === "1" ? "¡ALARMA ACTIVA!" : "ESTADO NORMAL";
-                    msg === "1" ? b.classList.add('active-alarm') : b.classList.remove('active-alarm');
+                    if (msg === "1") {
+                        b.innerText = "¡ALERTA CRÍTICA!";
+                        b.classList.add('active-alarm');
+                    } else {
+                        b.innerText = "SISTEMA NORMAL";
+                        b.classList.remove('active-alarm');
+                    }
                 }
+
+                if (topic === "esp32/alarmas/conteo") {
+                    document.getElementById('p2-count').innerText = msg;
+                }
+
                 if (topic === "esp32/control/led") {
                     ledState = (msg === "1");
                     const btn = document.getElementById('btn-led');
-                    btn.innerText = ledState ? "ENCENDIDO" : "APAGADO";
+                    btn.innerText = ledState ? "ACTUADOR ON" : "ACTUADOR OFF";
                     ledState ? btn.classList.add('active-led') : btn.classList.remove('active-led');
                 }
+
                 if (topic === "esp32/telemetria/switch") {
-                    document.getElementById('sw-status').innerText = "Switch Físico ESP 1: " + (msg === "1" ? "CERRADO" : "ABIERTO");
+                    document.getElementById('sw-status').innerText = "Switch Físico: " + (msg === "1" ? "CERRADO" : "ABIERTO");
                 }
 
-                // ESP 2
-                if (topic === "esp32_2/telemetria/pulsador") {
+                if (topic === "esp32/eventos/boton") {
                     const p2 = document.getElementById('p2-status');
-                    p2.innerText = msg === "1" ? "PULSADO" : "LIBRE";
-                    p2.style.color = msg === "1" ? "var(--green)" : "var(--dim)";
+                    p2.innerText = "¡BOTÓN FÍSICO DETECTADO!";
+                    p2.style.color = "var(--green)";
+                    setTimeout(() => { 
+                        p2.innerText = "SIN EVENTOS RECIENTES"; 
+                        p2.style.color = "var(--dim)";
+                    }, 4000);
                 }
-                if (topic === "esp32_2/telemetria/conteo") {
-                    document.getElementById('p2-count').innerText = msg;
-                }
+            });
+
+            client.on('error', () => {
+                document.getElementById('status-led').classList.remove('online');
             });
         }
 
         function toggleLED() {
             if (client && client.connected) {
-                client.publish("esp32/control/led", ledState ? "0" : "1", {retain: true});
+                const nextState = ledState ? "0" : "1";
+                client.publish("esp32/control/led", nextState, { qos: 1, retain: true });
             }
         }
     </script>
