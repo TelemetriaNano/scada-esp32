@@ -1,75 +1,52 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>SCADA NANO - Panel Privado</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
-    <style>
-        body { font-family: sans-serif; background: #1a1c24; color: white; text-align: center; }
-        .container { display: flex; justify-content: center; gap: 20px; padding: 20px; }
-        .card { background: #252936; padding: 20px; border-radius: 15px; width: 200px; border-top: 5px solid #4CAF50; }
-        .val { font-size: 3em; font-weight: bold; color: #4CAF50; }
-        .alarm-on { border-top-color: #ff4444 !important; }
-        .btn { padding: 15px 25px; font-size: 1.2em; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 10px; }
-    </style>
-</head>
-<body>
-    <h1>SCADA NANO - DASHBOARD WAN</h1>
-    <p id="status">Conectando al Broker...</p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+<script>
+    // IMPORTANTE: Para GitHub Pages (HTTPS) usamos el puerto 8884
+    const broker = "wss://430b579b966d4e73a269ce0c803564a7.s1.eu.hivemq.cloud:8884/mqtt";
+    
+    const options = {
+        clientId: 'Dashboard_Nano_' + Math.random().toString(16).substr(2, 8),
+        username: 'Telemetria-Nano',
+        password: 'Telemetria01',
+        clean: true
+    };
 
-    <div class="container">
-        <div class="card" id="card-pot">
-            <h3>Nivel Tanque</h3>
-            <div class="val" id="pot-val">0%</div>
-        </div>
-        <div class="card">
-            <h3>Alarmas</h3>
-            <div class="val" id="alarm-count">0</div>
-        </div>
-    </div>
+    const client = mqtt.connect(broker, options);
 
-    <button class="btn" onclick="toggleLED()">CONMUTAR LED MANUAL</button>
+    client.on('connect', () => {
+        console.log("¡Conectado a HiveMQ Cloud!");
+        document.getElementById('status').innerText = "✅ SISTEMA ONLINE";
+        document.getElementById('status').style.color = "#4CAF50";
+        
+        // Suscribirse a los mismos tópicos del .ino
+        client.subscribe("esp32/telemetria/pot");
+        client.subscribe("esp32/alarmas/estado");
+        client.subscribe("esp32/alarmas/conteo");
+    });
 
-    <script>
-        // CONFIGURACIÓN IDÉNTICA AL ESP32 (Usando WebSockets para el navegador)
-        const broker = "wss://430b579b966d4e73a269ce0c803564a7.s1.eu.hivemq.cloud:8884/mqtt";
-        const options = {
-            clientId: 'Web_Dashboard_' + Math.random().toString(16).substr(2, 8),
-            username: 'Telemetria-Nano',
-            password: 'Telemetria01',
-        };
-
-        const client = mqtt.connect(broker, options);
-
-        client.on('connect', () => {
-            document.getElementById('status').innerText = "✅ Conectado a HiveMQ Cloud";
-            client.subscribe("esp32/telemetria/pot");
-            client.subscribe("esp32/alarmas/estado");
-            client.subscribe("esp32/alarmas/conteo");
-        });
-
-        client.on('message', (topic, message) => {
-            const msg = message.toString();
-            if(topic === "esp32/telemetria/pot") {
-                document.getElementById('pot-val').innerText = msg + "%";
-            }
-            if(topic === "esp32/alarmas/estado") {
-                document.getElementById('card-pot').classList.toggle('alarm-on', msg === "1");
-            }
-            if(topic === "esp32/alarmas/conteo") {
-                document.getElementById('alarm-count').innerText = msg;
-            }
-        });
-
-        let ledState = 0;
-        function toggleLED() {
-            ledState = ledState === 0 ? 1 : 0;
-            client.publish("esp32/control/led", ledState.toString());
+    client.on('message', (topic, message) => {
+        const msg = message.toString();
+        if(topic === "esp32/telemetria/pot") {
+            document.getElementById('pot-val').innerText = msg + "%";
         }
-    </script>
-</body>
-</html>
-    </script>
-</body>
-</html>
+        if(topic === "esp32/alarmas/estado") {
+            // Si llega "1", ponemos el fondo en rojo
+            document.body.style.backgroundColor = (msg === "1") ? "#441111" : "#1a1c24";
+        }
+        if(topic === "esp32/alarmas/conteo") {
+            document.getElementById('alarm-count').innerText = msg;
+        }
+    });
+
+    client.on('error', (err) => {
+        console.error("Error de conexión:", err);
+        document.getElementById('status').innerText = "❌ ERROR DE ENLACE";
+    });
+
+    function toggleLED() {
+        // Enviamos el comando al ESP32 en Wokwi
+        const val = window.ledState === "1" ? "0" : "1";
+        window.ledState = val;
+        client.publish("esp32/control/led", val);
+    }
+</script>
 
