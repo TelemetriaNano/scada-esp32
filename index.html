@@ -3,160 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCADA NANO v2.0 - Industrial</title>
+    <title>SCADA NANO v2.0 - Dashboard Industrial Completo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
+        /* ===== TEMAS ===== */
+        body.theme-light {
+            background: #DCDCDC;
+            color: #000000;
+        }
+        
+        body.theme-dark {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        
         body {
-            font-family: 'Segoe UI', 'Roboto', sans-serif;
-            background: #0d1117;
-            color: #c9d1d9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
             padding: 20px;
-            line-height: 1.4;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
+        
         /* ===== LOGIN SCREEN ===== */
         #login-screen {
             position: fixed;
-            inset: 0;
-            background: #000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 9999;
         }
-
+        
+        body.theme-light #login-screen {
+            background: #DCDCDC;
+        }
+        
+        body.theme-dark #login-screen {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+        
         .login-box {
-            background: #161b22;
-            padding: 50px 40px;
-            border-radius: 8px;
-            border: 1px solid #30363d;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            padding: 50px;
+            border-radius: 20px;
             text-align: center;
-            min-width: 380px;
-            max-width: 90%;
+            min-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
+        
+        body.theme-light .login-box {
+            background: #F5F5F5;
+            border: 2px solid #808080;
+        }
+        
+        body.theme-dark .login-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
         .login-box h1 {
-            font-size: 2.4em;
-            margin-bottom: 8px;
-            color: #58a6ff;
-            font-weight: 600;
-            letter-spacing: 1px;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-
+        
         .login-box p {
-            color: #8b949e;
+            opacity: 0.8;
             margin-bottom: 30px;
-            font-size: 0.95em;
         }
-
+        
         .login-box input {
             width: 100%;
-            padding: 14px;
+            padding: 15px;
             font-size: 1.1em;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            background: #0d1117;
-            color: #e6edf3;
+            border: 2px solid;
+            border-radius: 12px;
             margin-bottom: 20px;
-            font-family: inherit;
+            text-align: center;
+            transition: all 0.3s;
         }
-
+        
+        body.theme-light .login-box input {
+            background: white;
+            border-color: #808080;
+            color: #000;
+        }
+        
+        body.theme-dark .login-box input {
+            background: rgba(255,255,255,0.9);
+            border-color: rgba(255,255,255,0.3);
+            color: #000;
+        }
+        
         .login-box input:focus {
             outline: none;
-            border-color: #58a6ff;
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+            border-color: #0066CC;
+            box-shadow: 0 0 12px rgba(0, 102, 204, 0.5);
         }
-
+        
         .login-box button {
             width: 100%;
-            padding: 14px;
-            font-size: 1.1em;
+            padding: 15px;
+            font-size: 1.2em;
             border: none;
-            border-radius: 6px;
-            background: #238636;
-            color: white;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
-
+        
+        body.theme-light .login-box button {
+            background: #0066CC;
+            color: white;
+        }
+        
+        body.theme-dark .login-box button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
         .login-box button:hover {
-            background: #2ea043;
-            box-shadow: 0 4px 12px rgba(46, 160, 67, 0.3);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
-
+        
         .login-error {
-            color: #f85149;
-            margin-top: 16px;
-            font-weight: 500;
+            color: #DC143C;
+            margin-top: 15px;
+            font-weight: bold;
             display: none;
         }
-
+        
         /* ===== MAIN DASHBOARD ===== */
         #dashboard {
             display: none;
         }
-
+        
         .header {
             text-align: center;
-            margin-bottom: 32px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #30363d;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-
+        
+        .header-title {
+            flex: 1;
+        }
+        
         .header h1 {
-            font-size: 2.3em;
-            color: #e6edf3;
-            font-weight: 600;
-            letter-spacing: 1.5px;
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-
+        
         .header .version {
-            color: #8b949e;
             font-size: 0.9em;
-            margin-top: 4px;
+            opacity: 0.8;
         }
-
+        
+        /* ===== THEME TOGGLE ===== */
+        .theme-toggle {
+            padding: 10px 20px;
+            font-size: 14px;
+            border: 2px solid;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-weight: 600;
+        }
+        
+        body.theme-light .theme-toggle {
+            background: #808080;
+            color: white;
+            border-color: #606060;
+        }
+        
+        body.theme-dark .theme-toggle {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border-color: rgba(255,255,255,0.3);
+        }
+        
+        .theme-toggle:hover {
+            box-shadow: 0 0 16px rgba(102, 126, 234, 0.5);
+        }
+        
+        /* ===== STATUS BAR ===== */
         .status-bar {
             display: flex;
-            justify-content: center;
+            justify-content: space-around;
             flex-wrap: wrap;
-            gap: 24px;
-            margin-bottom: 32px;
-            padding: 16px;
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 15px;
+            border-radius: 12px;
+            transition: all 0.5s;
         }
-
+        
+        body.theme-light .status-bar {
+            background: #F5F5F5;
+            border: 2px solid #C0C0C0;
+        }
+        
+        body.theme-dark .status-bar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
         .status-item {
             display: flex;
             align-items: center;
             gap: 10px;
-            font-size: 0.95em;
-            color: #c9d1d9;
         }
-
+        
         .status-indicator {
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            animation: pulse 2.2s infinite;
+            animation: pulse 2s ease-in-out infinite;
         }
-
-        .status-indicator.connected    { background: #238636; box-shadow: 0 0 10px #23863680; }
-        .status-indicator.connecting   { background: #d29922; box-shadow: 0 0 10px #d2992280; }
-        .status-indicator.disconnected { background: #f85149; box-shadow: 0 0 10px #f8514980; }
-
+        
+        .status-indicator.connected { 
+            background: #00AA00; 
+            box-shadow: 0 0 12px #00AA00;
+        }
+        .status-indicator.connecting { 
+            background: #FFD700; 
+            box-shadow: 0 0 12px #FFD700;
+        }
+        .status-indicator.disconnected { 
+            background: #DC143C; 
+            box-shadow: 0 0 12px #DC143C;
+        }
+        
         @keyframes pulse {
-            0%, 100% { opacity: 0.95; }
-            50%      { opacity: 0.4;  }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
-
+        
+        /* ===== SILENCE ALL BUTTON ===== */
+        .silence-all-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: 2px solid #DC143C;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #DC143C 0%, #B00020 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: none;
+        }
+        
+        .silence-all-btn:hover {
+            box-shadow: 0 0 20px rgba(220, 20, 60, 0.8);
+        }
+        
+        .silence-all-btn.visible {
+            display: block;
+        }
+        
+        /* ===== CONTAINER ===== */
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -164,310 +279,829 @@
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
         }
-
+        
+        /* ===== CARDS ===== */
         .card {
-            background: #161b22;
-            border-radius: 8px;
-            padding: 20px;
-            border: 1px solid #30363d;
-            transition: all 0.18s ease;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
-
+        
+        body.theme-light .card {
+            background: linear-gradient(135deg, #F5F5F5 0%, #ECECEC 100%);
+            border: 2px solid #C0C0C0;
+        }
+        
+        body.theme-dark .card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
         .card:hover {
-            border-color: #58a6ff44;
-            box-shadow: 0 0 16px rgba(88, 166, 255, 0.12);
-            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 102, 204, 0.4);
         }
-
+        
+        body.theme-light .card:hover {
+            border-color: #0066CC;
+        }
+        
+        body.theme-dark .card:hover {
+            border-color: rgba(102, 126, 234, 0.6);
+        }
+        
+        .card.alarm-active {
+            animation: alarmPulse 2s ease-in-out infinite;
+        }
+        
+        body.theme-light .card.alarm-active {
+            border-color: #DC143C;
+            box-shadow: 0 0 24px rgba(220, 20, 60, 0.6);
+        }
+        
+        body.theme-dark .card.alarm-active {
+            background: rgba(244, 67, 54, 0.2);
+            border-color: #DC143C;
+        }
+        
+        @keyframes alarmPulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(220, 20, 60, 0.6);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(220, 20, 60, 0.9);
+            }
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
         .card-title {
-            font-size: 0.82em;
+            font-size: 0.9em;
             text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #8b949e;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
-
-        .card-value {
-            font-size: 2.4em;
+            letter-spacing: 1px;
             font-weight: 600;
-            color: #e6edf3;
-            margin: 12px 0;
         }
-
+        
+        body.theme-light .card-title {
+            color: #606060;
+        }
+        
+        body.theme-dark .card-title {
+            opacity: 0.8;
+        }
+        
+        .config-btn {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            color: inherit;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .config-btn:hover {
+            background: rgba(102, 126, 234, 0.4);
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.6);
+        }
+        
+        /* ===== ANALOG DISPLAY WITH VERTICAL BAR ===== */
+        .analog-display {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* ← CENTRADO */
+            gap: 15px; /* ← Era 20px, ahora 15px (más junto) */
+            margin: 15px 0;
+        }
+        
+        .value-container {
+            flex: 0 1 auto; /* ← No crece tanto, más compacto */
+            text-align: right; /* ← Alineado a la derecha para estar más cerca de la barra */
+        }
+        
+        .card-value {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .alarm-indicators {
+            display: flex;
+            gap: 8px;
+            margin-top: 5px;
+            justify-content: flex-end; /* ← Alineado a la derecha */
+        }
+        
+        .alarm-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .alarm-badge.high {
+            background: #DC143C;
+            color: white;
+            display: inline-block;
+        }
+        
+        .alarm-badge.low {
+            background: #FFD700;
+            color: #000;
+            display: inline-block;
+        }
+        
+        /* ===== VERTICAL PROGRESS BAR ===== */
+        .vertical-bar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0; /* ← NO se encoge en mobile */
+        }
+        
+        .bar-label {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+        
+        .vertical-bar {
+            width: 24px;  /* ← Era 30px, ahora 24px (6px menos) */
+            height: 150px; /* ← Era 200px, ahora 150px para mobile */
+            background: #333;
+            border-radius: 12px; /* ← Ajustado proporcionalmente */
+            position: relative;
+            overflow: hidden;
+            border: 2px solid;
+        }
+        
+        body.theme-light .vertical-bar {
+            background: #D0D0D0;
+            border-color: #A0A0A0;
+        }
+        
+        body.theme-dark .vertical-bar {
+            background: rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.3);
+        }
+        
+        .bar-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            transition: all 0.5s ease;
+            border-radius: 0 0 10px 10px; /* ← Ajustado */
+        }
+        
+        .bar-fill.green {
+            background: linear-gradient(to top, #00AA00, #00FF00);
+        }
+        
+        .bar-fill.yellow {
+            background: linear-gradient(to top, #FFD700, #FFFF00);
+        }
+        
+        .bar-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .marker {
+            position: absolute;
+            left: -8px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 12px solid #FFD700;
+            filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));
+            cursor: help;
+            pointer-events: all;
+        }
+        
+        .marker.high {
+            transform: translateY(-6px);
+        }
+        
+        .marker.low {
+            transform: translateY(-6px);
+        }
+        
+        /* Tooltip */
+        .marker::after {
+            content: attr(data-value);
+            position: absolute;
+            left: 20px;
+            top: -8px;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .marker:hover::after {
+            opacity: 1;
+        }
+        
+        .bar-scale {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 150px; /* ← Ajustado */
+            font-size: 10px;
+            opacity: 0.6;
+        }
+        
         .card-subtitle {
-            font-size: 0.82em;
-            color: #8b949e;
+            font-size: 0.85em;
         }
-
+        
+        body.theme-light .card-subtitle {
+            color: #808080;
+        }
+        
+        body.theme-dark .card-subtitle {
+            opacity: 0.7;
+        }
+        
+        /* ===== ACK BUTTON ===== */
+        .ack-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: #DC143C;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s;
+        }
+        
+        .ack-btn.visible {
+            display: block;
+            animation: ackPulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes ackPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .ack-btn:hover {
+            box-shadow: 0 0 16px rgba(220, 20, 60, 0.8);
+        }
+        
+        /* ===== ESTADOS DE COLOR ISA-18.2 ===== */
+        .status-normal {
+            color: #00AA00;
+            text-shadow: 0 0 8px rgba(0, 170, 0, 0.4);
+        }
+        
+        .status-warning {
+            color: #FFD700;
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+        }
+        
+        .status-alarm {
+            color: #DC143C;
+            text-shadow: 0 0 8px rgba(220, 20, 60, 0.4);
+        }
+        
         /* ===== CONTROLES ===== */
         .control-card {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 15px;
         }
-
+        
         .btn {
-            background: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-            padding: 14px 28px;
+            padding: 15px 30px;
             font-size: 1em;
-            border-radius: 6px;
+            border: none;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.18s;
-            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 600;
         }
-
+        
         .btn:hover {
-            border-color: #58a6ff;
-            background: #21262d;
-            box-shadow: 0 0 12px rgba(88, 166, 255, 0.25);
+            box-shadow: 0 0 16px rgba(0, 102, 204, 0.5);
         }
-
+        
+        .btn:active {
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+        
         .btn.on {
-            background: #238636;
+            background: linear-gradient(135deg, #00CC00 0%, #00AA00 100%);
             color: white;
-            border-color: #238636;
-            box-shadow: 0 0 14px rgba(35, 134, 54, 0.4);
+            box-shadow: 0 0 16px rgba(0, 170, 0, 0.5);
         }
-
+        
         .btn.off {
-            background: #21262d;
-            color: #8b949e;
-            border-color: #30363d;
+            background: linear-gradient(135deg, #909090 0%, #707070 100%);
+            color: white;
         }
-
+        
+        /* ===== SLIDER ===== */
         .slider-container {
-            margin-top: 8px;
+            margin-top: 10px;
         }
-
+        
         .slider {
             width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #30363d;
+            height: 8px;
+            border-radius: 5px;
             outline: none;
             -webkit-appearance: none;
+            transition: all 0.3s;
         }
-
+        
+        body.theme-light .slider {
+            background: #D0D0D0;
+            border: 1px solid #A0A0A0;
+        }
+        
+        body.theme-dark .slider {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .slider:hover {
+            box-shadow: 0 0 12px rgba(102, 126, 234, 0.4);
+        }
+        
         .slider::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 25px;
+            height: 25px;
             border-radius: 50%;
-            background: #58a6ff;
+            background: #667eea;
             cursor: pointer;
-            box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
-            border: 2px solid #0d1117;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease;
         }
-
+        
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 16px rgba(102, 126, 234, 0.8);
+        }
+        
         .slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
+            width: 25px;
+            height: 25px;
             border-radius: 50%;
-            background: #58a6ff;
+            background: #667eea;
             cursor: pointer;
-            box-shadow: 0 0 8px rgba(88, 166, 255, 0.5);
-            border: 2px solid #0d1117;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: none;
+            transition: transform 0.2s ease;
         }
-
+        
+        .slider::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 16px rgba(102, 126, 234, 0.8);
+        }
+        
         .value-display {
             text-align: center;
-            font-size: 1.6em;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        /* ===== CONFIG MODAL ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.visible {
+            display: flex;
+        }
+        
+        .modal-content {
+            min-width: 450px;
+            max-width: 500px;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        body.theme-light .modal-content {
+            background: #F5F5F5;
+            border: 2px solid #808080;
+        }
+        
+        body.theme-dark .modal-content {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid;
+        }
+        
+        body.theme-light .modal-header {
+            border-color: #C0C0C0;
+        }
+        
+        body.theme-dark .modal-header {
+            border-color: rgba(255,255,255,0.3);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
             font-weight: 600;
-            margin-top: 12px;
-            color: #58a6ff;
+            margin-bottom: 8px;
+            opacity: 0.9;
         }
-
-        .alarm-active {
-            animation: alarmPulse 1.4s infinite;
-            border-color: #f85149 !important;
-            box-shadow: 0 0 16px rgba(248, 81, 73, 0.3);
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
         }
-
-        @keyframes alarmPulse {
-            0%, 100% { box-shadow: 0 0 12px rgba(248,81,73,0.25); }
-            50%      { box-shadow: 0 0 24px rgba(248,81,73,0.55); }
+        
+        body.theme-light .form-input {
+            background: white;
+            border-color: #A0A0A0;
+            color: #000;
         }
-
-        /* ===== EVENT LOG ===== */
-        .event-log-container {
-            grid-column: 1 / -1;
-            background: #0d1117;
-            border: 1px solid #30363d;
+        
+        body.theme-dark .form-input {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.3);
+            color: white;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #0066CC;
+            box-shadow: 0 0 12px rgba(0, 102, 204, 0.5);
+        }
+        
+        /* Switch Toggle */
+        .switch-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        body.theme-light .switch-group {
+            background: rgba(0,0,0,0.05);
+        }
+        
+        body.theme-dark .switch-group {
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 30px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #808080;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+        
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .switch-slider {
+            background-color: #00AA00;
+        }
+        
+        input:checked + .switch-slider:before {
+            transform: translateX(30px);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modal-btn.save {
+            background: linear-gradient(135deg, #00AA00, #00CC00);
+            color: white;
+        }
+        
+        .modal-btn.cancel {
+            background: #808080;
+            color: white;
+        }
+        
+        .modal-btn.reset {
+            background: #DC143C;
+            color: white;
+        }
+        
+        .modal-btn:hover {
+            box-shadow: 0 0 16px rgba(0, 102, 204, 0.5);
+        }
+        
+        /* ===== EVENT LOG (IN POPUP) ===== */
+        #event-log-popup {
+            max-height: 500px;
+        }
+        
+        #event-log-popup .event-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
             border-radius: 8px;
-            padding: 20px;
-            max-height: 320px;
-            overflow-y: auto;
+            font-size: 0.95em;
+            border-left: 4px solid;
+            transition: all 0.3s;
         }
-
-        .event-log-title {
-            font-size: 1.1em;
-            margin-bottom: 16px;
-            color: #58a6ff;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            font-weight: 500;
-            border-bottom: 1px solid #30363d;
-            padding-bottom: 12px;
+        
+        body.theme-light #event-log-popup .event-item {
+            background: white;
         }
-
-        .event-item {
-            padding: 10px 14px;
-            margin-bottom: 6px;
-            background: #161b22;
-            border-left: 3px solid #30363d;
-            font-size: 0.9em;
-            transition: all 0.15s;
+        
+        body.theme-dark #event-log-popup .event-item {
+            background: rgba(255,255,255,0.05);
         }
-
-        .event-item:hover {
-            background: #1f2428;
+        
+        #event-log-popup .event-item:hover {
+            background: rgba(102, 126, 234, 0.15);
         }
-
-        .event-item.alarm {
-            border-left-color: #f85149;
-            color: #f85149;
+        
+        #event-log-popup .event-item.alarm {
+            border-left-color: #DC143C;
         }
-
-        .event-item.control {
-            border-left-color: #58a6ff;
-            color: #79c0ff;
+        
+        #event-log-popup .event-item.control {
+            border-left-color: #00AA00;
         }
-
-        .event-item.info {
-            border-left-color: #388bfd;
-            color: #a5d6ff;
+        
+        #event-log-popup .event-item.info {
+            border-left-color: #0066CC;
         }
-
-        .event-timestamp {
-            opacity: 0.6;
+        
+        #event-log-popup .event-timestamp {
+            opacity: 0.7;
             margin-right: 12px;
-            font-size: 0.85em;
+            font-weight: bold;
+            font-size: 0.9em;
         }
-
-        /* Scrollbar */
-        .event-log-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .event-log-container::-webkit-scrollbar-track {
-            background: #0d1117;
-        }
-
-        .event-log-container::-webkit-scrollbar-thumb {
-            background: #30363d;
-            border-radius: 4px;
-        }
-
-        .event-log-container::-webkit-scrollbar-thumb:hover {
-            background: #444d56;
-        }
-
+        
         .logout-btn {
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #21262d;
-            color: #f85149;
-            border: 1px solid #f8514940;
-            padding: 10px 18px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s;
-            font-weight: 500;
+            transition: all 0.3s;
+            border: 2px solid;
+            font-weight: 600;
+            z-index: 100;
         }
-
-        .logout-btn:hover {
-            background: #f85149;
+        
+        body.theme-light .logout-btn {
+            background: #DC143C;
             color: white;
-            border-color: #f85149;
-            box-shadow: 0 0 12px rgba(248,81,73,0.4);
+            border-color: #B00020;
         }
-
+        
+        body.theme-dark .logout-btn {
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+            border-color: rgba(244, 67, 54, 1);
+        }
+        
+        .logout-btn:hover {
+            box-shadow: 0 0 20px rgba(220, 20, 60, 0.6);
+        }
+        
         @media (max-width: 768px) {
-            .login-box { padding: 40px 25px; min-width: 320px; }
-            .header h1 { font-size: 1.9em; }
-            .card-value { font-size: 2.1em; }
+            .login-box { min-width: 300px; padding: 30px; }
+            .header { flex-direction: column; gap: 15px; }
+            .header h1 { font-size: 1.8em; }
+            .card-value { font-size: 3.5em; } /* ← Era 2.5em, ahora 3.5em (+10px aprox) */
+            .container { grid-template-columns: 1fr; }
+            .modal-content { min-width: 90%; }
+            /* Valor y barra en la misma línea, centrados */
         }
     </style>
 </head>
-<body>
-
+<body class="theme-dark">
     <!-- ===== PANTALLA DE LOGIN ===== -->
     <div id="login-screen">
         <div class="login-box">
-            <h1>SCADA NANO</h1>
-            <p>SISTEMA DE TELEMETRÍA INDUSTRIAL</p>
-            <input type="password" id="password-input" placeholder="INGRESE CÓDIGO DE ACCESO"
+            <h1>🔐 SCADA NANO</h1>
+            <p>Sistema de Telemetría Industrial</p>
+            <input type="password" id="password-input" placeholder="Ingrese contraseña" 
                    onkeypress="if(event.key==='Enter') login()">
             <button onclick="login()">INGRESAR</button>
-            <div class="login-error" id="login-error">✗ ACCESO DENEGADO</div>
+            <div class="login-error" id="login-error">❌ Contraseña incorrecta</div>
         </div>
     </div>
 
     <!-- ===== DASHBOARD PRINCIPAL ===== -->
     <div id="dashboard">
-        <button class="logout-btn" onclick="logout()">SALIR</button>
-       
+        <button class="logout-btn" onclick="logout()">🚪 Cerrar Sesión</button>
+        
         <div class="header">
-            <h1>SCADA NANO CONTROL PANEL</h1>
-            <div class="version">SISTEMA INDUSTRIAL v2.0 - OPTIMIZADO</div>
+            <div class="header-title">
+                <h1>🏭 SCADA NANO</h1>
+                <div class="version">v2.0 - Sistema Industrial con Alarmas Configurables</div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span id="theme-text">☀️ TEMA CLARO</span>
+            </button>
         </div>
 
         <div class="status-bar">
             <div class="status-item">
                 <div class="status-indicator connecting" id="mqtt-indicator"></div>
-                <span id="mqtt-status">MQTT: CONECTANDO...</span>
+                <span id="mqtt-status">MQTT: Conectando...</span>
             </div>
             <div class="status-item">
-                <span>UPTIME: <strong id="uptime">00:00:00</strong></span>
+                <span>🕐 Uptime: <strong id="uptime">00:00:00</strong></span>
             </div>
             <div class="status-item">
-                <span>RAM: <strong id="memory">0 KB</strong></span>
+                <span>💾 Memoria: <strong id="memory">0 KB</strong></span>
+            </div>
+            <div class="status-item">
+                <button class="silence-all-btn" id="silence-all" onclick="silenceAllAlarms()">
+                    🔇 SILENCIAR TODAS
+                </button>
             </div>
         </div>
 
         <div class="container">
-            <!-- SENSORES ANALÓGICOS -->
+            <!-- NIVEL TANQUE (ANALÓGICO) -->
             <div class="card" id="card-nivel">
-                <div class="card-title">NIVEL TANQUE</div>
-                <div class="card-value" id="nivel-value">0%</div>
-                <div class="card-subtitle">POTENCIÓMETRO 1</div>
+                <div class="card-header">
+                    <div class="card-title">💧 Nivel de Tanque</div>
+                    <button class="config-btn" onclick="openConfig('nivel')">⚙️</button>
+                </div>
+                
+                <div class="analog-display">
+                    <div class="value-container">
+                        <div class="card-value" id="nivel-value">0%</div>
+                        <div class="alarm-indicators">
+                            <span class="alarm-badge high" id="nivel-badge-high">H</span>
+                            <span class="alarm-badge low" id="nivel-badge-low">L</span>
+                        </div>
+                        <div class="card-subtitle">Potenciómetro 1</div>
+                    </div>
+                    
+                    <div class="vertical-bar-container">
+                        <div class="bar-label">100%</div>
+                        <div class="vertical-bar">
+                            <div class="bar-fill green" id="nivel-bar" style="height: 0%"></div>
+                            <div class="bar-markers" id="nivel-markers"></div>
+                        </div>
+                        <div class="bar-label">0%</div>
+                    </div>
+                </div>
+                
+                <button class="ack-btn" id="nivel-ack" onclick="acknowledgeAlarm('nivel')">
+                    🔔 RECONOCER ALARMA
+                </button>
             </div>
 
-            <div class="card">
-                <div class="card-title">PRESIÓN SISTEMA</div>
-                <div class="card-value" id="presion-value">0%</div>
-                <div class="card-subtitle">POTENCIÓMETRO 2</div>
+            <!-- PRESIÓN (ANALÓGICO) -->
+            <div class="card" id="card-presion">
+                <div class="card-header">
+                    <div class="card-title">⚙️ Presión del Sistema</div>
+                    <button class="config-btn" onclick="openConfig('presion')">⚙️</button>
+                </div>
+                
+                <div class="analog-display">
+                    <div class="value-container">
+                        <div class="card-value" id="presion-value">0%</div>
+                        <div class="alarm-indicators">
+                            <span class="alarm-badge high" id="presion-badge-high">H</span>
+                            <span class="alarm-badge low" id="presion-badge-low">L</span>
+                        </div>
+                        <div class="card-subtitle">Potenciómetro 2</div>
+                    </div>
+                    
+                    <div class="vertical-bar-container">
+                        <div class="bar-label">100%</div>
+                        <div class="vertical-bar">
+                            <div class="bar-fill green" id="presion-bar" style="height: 0%"></div>
+                            <div class="bar-markers" id="presion-markers"></div>
+                        </div>
+                        <div class="bar-label">0%</div>
+                    </div>
+                </div>
+                
+                <button class="ack-btn" id="presion-ack" onclick="acknowledgeAlarm('presion')">
+                    🔔 RECONOCER ALARMA
+                </button>
             </div>
 
             <!-- SENSORES DIGITALES -->
             <div class="card">
-                <div class="card-title">SENSOR PUERTA</div>
+                <div class="card-title">🚪 Sensor de Puerta</div>
                 <div class="card-value" id="puerta-value">CERRADA</div>
-                <div class="card-subtitle">SWITCH 1</div>
+                <div class="card-subtitle">Switch 1</div>
             </div>
 
             <div class="card">
-                <div class="card-title">SENSOR NIVEL</div>
+                <div class="card-title">📏 Sensor de Nivel</div>
                 <div class="card-value" id="sensor-nivel-value">BAJO</div>
-                <div class="card-subtitle">SWITCH 2</div>
+                <div class="card-subtitle">Switch 2</div>
             </div>
 
             <!-- ALARMAS -->
             <div class="card">
-                <div class="card-title">ALARMAS</div>
+                <div class="card-title">🔔 Sistema de Alarmas</div>
                 <div class="card-value" id="alarm-count">0</div>
-                <div class="card-subtitle" id="alarm-status">SISTEMA NORMAL</div>
+                <div class="card-subtitle" id="alarm-status">Sistema Normal</div>
             </div>
 
             <!-- CONTROL SERVO -->
             <div class="card control-card">
-                <div class="card-title">VÁLVULA</div>
+                <div class="card-title">🎛️ Control de Válvula</div>
                 <div class="slider-container">
-                    <input type="range" min="0" max="180" value="0" class="slider"
+                    <input type="range" min="0" max="180" value="0" class="slider" 
                            id="servo-slider">
                     <div class="value-display" id="servo-display">0°</div>
                 </div>
@@ -475,23 +1109,80 @@
 
             <!-- CONTROL BOMBAS -->
             <div class="card control-card">
-                <div class="card-title">BOMBA 1</div>
+                <div class="card-title">💚 Bomba 1 (Verde)</div>
                 <button class="btn off" id="bomba1-btn" onclick="toggleBomba1()">
-                    <span id="bomba1-text">[ OFF ]</span>
+                    <span id="bomba1-text">ENCENDER</span>
                 </button>
             </div>
 
             <div class="card control-card">
-                <div class="card-title">BOMBA 2</div>
+                <div class="card-title">💙 Bomba 2 (Azul)</div>
                 <button class="btn off" id="bomba2-btn" onclick="toggleBomba2()">
-                    <span id="bomba2-text">[ OFF ]</span>
+                    <span id="bomba2-text">ENCENDER</span>
                 </button>
             </div>
 
-            <!-- EVENT LOG -->
-            <div class="event-log-container">
-                <div class="event-log-title">REGISTRO DE EVENTOS (ÚLTIMOS 10)</div>
-                <div id="event-log"></div>
+            <!-- BOTÓN PARA ABRIR LOG DE EVENTOS -->
+            <div class="card control-card">
+                <div class="card-title">📋 Registro de Eventos</div>
+                <button class="btn off" onclick="openEventLog()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <span>📋 VER ÚLTIMOS 30 EVENTOS</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== EVENT LOG MODAL ===== -->
+    <div class="modal" id="event-log-modal">
+        <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-header">📋 Registro de Eventos (Últimos 30)</div>
+            
+            <div style="flex: 1; overflow-y: auto; padding: 10px 0;">
+                <div id="event-log-popup"></div>
+            </div>
+            
+            <div class="modal-buttons" style="margin-top: 15px;">
+                <button class="modal-btn cancel" onclick="closeEventLog()" style="flex: 1;">❌ Cerrar</button>
+                <button class="modal-btn save" onclick="clearEventLog()" style="flex: 1; background: #DC143C;">🗑️ Limpiar Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CONFIG MODAL ===== -->
+    <div class="modal" id="config-modal">
+        <div class="modal-content">
+            <div class="modal-header" id="modal-title">Configuración de Alarmas</div>
+            
+            <div class="form-group">
+                <label class="form-label">Set Point Alto (%)</label>
+                <input type="number" class="form-input" id="config-high" min="0" max="100" value="80">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Set Point Bajo (%)</label>
+                <input type="number" class="form-input" id="config-low" min="0" max="100" value="20">
+            </div>
+            
+            <div class="switch-group">
+                <label class="form-label" style="margin: 0;">Alarmas Activadas</label>
+                <label class="switch">
+                    <input type="checkbox" id="config-alarm-enabled" checked>
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            
+            <div class="switch-group">
+                <label class="form-label" style="margin: 0;">Beep Sonoro</label>
+                <label class="switch">
+                    <input type="checkbox" id="config-beep-enabled" checked>
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn save" onclick="saveConfig()">💾 Guardar</button>
+                <button class="modal-btn cancel" onclick="closeConfig()">❌ Cancelar</button>
+                <button class="modal-btn reset" onclick="resetConfig()">🔄 Reset</button>
             </div>
         </div>
     </div>
@@ -515,23 +1206,338 @@
         let servoAngle = 0;
         let startTime = Date.now();
         let eventLog = [];
-        const MAX_EVENTS = 10;
-
+        const MAX_EVENTS = 30; // ← Cambiado de 10 a 30
+        
+        // Audio Context para beeps
+        let audioContext;
+        let beepIntervals = {};
+        
+        // Estado de alarmas
+        let alarmStates = {
+            nivel: { high: false, low: false, acknowledged: false },
+            presion: { high: false, low: false, acknowledged: false }
+        };
+        
+        // Configuración de alarmas (defaults)
+        let alarmConfigs = {
+            nivel: {
+                high: 80,
+                low: 20,
+                alarmEnabled: true,
+                beepEnabled: true
+            },
+            presion: {
+                high: 80,
+                low: 20,
+                alarmEnabled: true,
+                beepEnabled: true
+            }
+        };
+        
+        // Cargar configuración desde localStorage
+        function loadConfigs() {
+            const saved = localStorage.getItem('scada_alarm_configs');
+            if (saved) {
+                alarmConfigs = JSON.parse(saved);
+            }
+            updateAllMarkers();
+        }
+        
+        // Guardar configuración en localStorage
+        function saveConfigs() {
+            localStorage.setItem('scada_alarm_configs', JSON.stringify(alarmConfigs));
+        }
+        
+        let currentConfigInstrument = null;
+        
+        // ===== BEEP SONORO =====
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+        
+        function playBeep() {
+            if (!audioContext) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        }
+        
+        function startBeep(instrument) {
+            if (beepIntervals[instrument]) return; // Ya está sonando
+            
+            playBeep(); // Beep inmediato
+            beepIntervals[instrument] = setInterval(() => {
+                playBeep();
+            }, 10000); // Cada 10 segundos
+        }
+        
+        function stopBeep(instrument) {
+            if (beepIntervals[instrument]) {
+                clearInterval(beepIntervals[instrument]);
+                delete beepIntervals[instrument];
+            }
+        }
+        
+        // ===== ALARM MANAGEMENT =====
+        function checkAlarm(instrument, value) {
+            const config = alarmConfigs[instrument];
+            const state = alarmStates[instrument];
+            
+            if (!config.alarmEnabled) {
+                // Si las alarmas están desactivadas, limpiar todo
+                if (state.high || state.low) {
+                    state.high = false;
+                    state.low = false;
+                    state.acknowledged = false;
+                    stopBeep(instrument);
+                    updateAlarmUI(instrument);
+                }
+                return;
+            }
+            
+            let alarmTriggered = false;
+            let alarmType = '';
+            
+            // Check High Alarm
+            if (value >= config.high && !state.high) {
+                state.high = true;
+                state.acknowledged = false;
+                alarmTriggered = true;
+                alarmType = 'ALTA';
+                addEvent(`🚨 ALARMA ALTA - ${instrument.toUpperCase()}: ${value}% (>= ${config.high}%)`, 'alarm');
+            } else if (value < config.high - 2 && state.high) { // Histeresis 2%
+                state.high = false;
+                addEvent(`✓ Alarma alta normalizada - ${instrument.toUpperCase()}`, 'info');
+            }
+            
+            // Check Low Alarm
+            if (value <= config.low && !state.low) {
+                state.low = true;
+                state.acknowledged = false;
+                alarmTriggered = true;
+                alarmType = 'BAJA';
+                addEvent(`⚠ ALARMA BAJA - ${instrument.toUpperCase()}: ${value}% (<= ${config.low}%)`, 'alarm');
+            } else if (value > config.low + 2 && state.low) { // Histeresis 2%
+                state.low = false;
+                addEvent(`✓ Alarma baja normalizada - ${instrument.toUpperCase()}`, 'info');
+            }
+            
+            // Iniciar beep si es nueva alarma no reconocida
+            if (alarmTriggered && config.beepEnabled && !state.acknowledged) {
+                initAudio();
+                startBeep(instrument);
+            }
+            
+            // Si ya no hay alarmas, parar beep
+            if (!state.high && !state.low) {
+                stopBeep(instrument);
+                state.acknowledged = false;
+            }
+            
+            updateAlarmUI(instrument);
+        }
+        
+        function updateAlarmUI(instrument) {
+            const state = alarmStates[instrument];
+            const card = document.getElementById(`card-${instrument}`);
+            const ackBtn = document.getElementById(`${instrument}-ack`);
+            const badgeHigh = document.getElementById(`${instrument}-badge-high`);
+            const badgeLow = document.getElementById(`${instrument}-badge-low`);
+            
+            // Update badges
+            badgeHigh.style.display = state.high ? 'inline-block' : 'none';
+            badgeLow.style.display = state.low ? 'inline-block' : 'none';
+            
+            // Update card alarm state
+            if (state.high || state.low) {
+                card.classList.add('alarm-active');
+                if (!state.acknowledged) {
+                    ackBtn.classList.add('visible');
+                } else {
+                    ackBtn.classList.remove('visible');
+                }
+            } else {
+                card.classList.remove('alarm-active');
+                ackBtn.classList.remove('visible');
+            }
+            
+            // Update silence all button
+            updateSilenceAllButton();
+        }
+        
+        function updateSilenceAllButton() {
+            const silenceBtn = document.getElementById('silence-all');
+            let hasActiveAlarms = false;
+            
+            for (let inst in alarmStates) {
+                if ((alarmStates[inst].high || alarmStates[inst].low) && !alarmStates[inst].acknowledged) {
+                    hasActiveAlarms = true;
+                    break;
+                }
+            }
+            
+            if (hasActiveAlarms) {
+                silenceBtn.classList.add('visible');
+            } else {
+                silenceBtn.classList.remove('visible');
+            }
+        }
+        
+        function acknowledgeAlarm(instrument) {
+            const state = alarmStates[instrument];
+            state.acknowledged = true;
+            stopBeep(instrument);
+            updateAlarmUI(instrument);
+            addEvent(`✓ Alarma reconocida - ${instrument.toUpperCase()}`, 'control');
+        }
+        
+        function silenceAllAlarms() {
+            for (let inst in alarmStates) {
+                if (alarmStates[inst].high || alarmStates[inst].low) {
+                    acknowledgeAlarm(inst);
+                }
+            }
+            addEvent('🔇 Todas las alarmas silenciadas', 'control');
+        }
+        
+        // ===== CONFIG MODAL =====
+        function openConfig(instrument) {
+            currentConfigInstrument = instrument;
+            const config = alarmConfigs[instrument];
+            
+            document.getElementById('modal-title').textContent = 
+                `Configuración - ${instrument.toUpperCase()}`;
+            document.getElementById('config-high').value = config.high;
+            document.getElementById('config-low').value = config.low;
+            document.getElementById('config-alarm-enabled').checked = config.alarmEnabled;
+            document.getElementById('config-beep-enabled').checked = config.beepEnabled;
+            
+            document.getElementById('config-modal').classList.add('visible');
+        }
+        
+        function closeConfig() {
+            document.getElementById('config-modal').classList.remove('visible');
+            currentConfigInstrument = null;
+        }
+        
+        function saveConfig() {
+            if (!currentConfigInstrument) return;
+            
+            const high = parseInt(document.getElementById('config-high').value);
+            const low = parseInt(document.getElementById('config-low').value);
+            
+            if (high <= low) {
+                alert('⚠️ El Set Point Alto debe ser mayor que el Bajo');
+                return;
+            }
+            
+            alarmConfigs[currentConfigInstrument] = {
+                high: high,
+                low: low,
+                alarmEnabled: document.getElementById('config-alarm-enabled').checked,
+                beepEnabled: document.getElementById('config-beep-enabled').checked
+            };
+            
+            saveConfigs();
+            updateMarkers(currentConfigInstrument);
+            addEvent(`⚙️ Configuración guardada - ${currentConfigInstrument.toUpperCase()}`, 'control');
+            closeConfig();
+        }
+        
+        function resetConfig() {
+            if (!currentConfigInstrument) return;
+            
+            if (confirm('¿Restaurar configuración por defecto?')) {
+                alarmConfigs[currentConfigInstrument] = {
+                    high: 80,
+                    low: 20,
+                    alarmEnabled: true,
+                    beepEnabled: true
+                };
+                saveConfigs();
+                openConfig(currentConfigInstrument); // Reload
+                updateMarkers(currentConfigInstrument);
+                addEvent(`🔄 Configuración restaurada - ${currentConfigInstrument.toUpperCase()}`, 'control');
+            }
+        }
+        
+        // ===== VERTICAL BAR =====
+        function updateBar(instrument, value) {
+            const bar = document.getElementById(`${instrument}-bar`);
+            const config = alarmConfigs[instrument];
+            
+            bar.style.height = value + '%';
+            
+            // Change color based on setpoint
+            if (value >= config.high || value <= config.low) {
+                bar.className = 'bar-fill yellow';
+            } else {
+                bar.className = 'bar-fill green';
+            }
+        }
+        
+        function updateMarkers(instrument) {
+            const container = document.getElementById(`${instrument}-markers`);
+            const config = alarmConfigs[instrument];
+            
+            container.innerHTML = '';
+            
+            // High marker
+            const highMarker = document.createElement('div');
+            highMarker.className = 'marker high';
+            highMarker.style.bottom = config.high + '%';
+            highMarker.setAttribute('data-value', `H: ${config.high}%`);
+            container.appendChild(highMarker);
+            
+            // Low marker
+            const lowMarker = document.createElement('div');
+            lowMarker.className = 'marker low';
+            lowMarker.style.bottom = config.low + '%';
+            lowMarker.setAttribute('data-value', `L: ${config.low}%`);
+            container.appendChild(lowMarker);
+        }
+        
+        function updateAllMarkers() {
+            updateMarkers('nivel');
+            updateMarkers('presion');
+        }
+        
         // ===== EVENT LOG =====
         function addEvent(message, type = 'info') {
             const timestamp = new Date().toLocaleTimeString();
             const event = { timestamp, message, type };
-           
+            
             eventLog.unshift(event);
             if (eventLog.length > MAX_EVENTS) {
                 eventLog.pop();
             }
-           
+            
             updateEventLogDisplay();
         }
 
         function updateEventLogDisplay() {
-            const container = document.getElementById('event-log');
+            const container = document.getElementById('event-log-popup');
+            if (!container) return;
+            
+            if (eventLog.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 30px; opacity: 0.6;">No hay eventos registrados</div>';
+                return;
+            }
+            
             container.innerHTML = eventLog.map(event => `
                 <div class="event-item ${event.type}">
                     <span class="event-timestamp">[${event.timestamp}]</span>
@@ -539,21 +1545,58 @@
                 </div>
             `).join('');
         }
+        
+        // ===== EVENT LOG MODAL =====
+        function openEventLog() {
+            document.getElementById('event-log-modal').classList.add('visible');
+            updateEventLogDisplay();
+        }
+        
+        function closeEventLog() {
+            document.getElementById('event-log-modal').classList.remove('visible');
+        }
+        
+        function clearEventLog() {
+            if (confirm('¿Estás seguro de que quieres borrar todos los eventos?')) {
+                eventLog = [];
+                updateEventLogDisplay();
+                addEvent('🗑️ Registro de eventos limpiado', 'info');
+            }
+        }
+
+        // ===== TEMA =====
+        function toggleTheme() {
+            const body = document.body;
+            const themeText = document.getElementById('theme-text');
+            
+            if (body.classList.contains('theme-dark')) {
+                body.classList.remove('theme-dark');
+                body.classList.add('theme-light');
+                themeText.textContent = '🌙 TEMA OSCURO';
+                addEvent('Tema cambiado a CLARO', 'info');
+            } else {
+                body.classList.remove('theme-light');
+                body.classList.add('theme-dark');
+                themeText.textContent = '☀️ TEMA CLARO';
+                addEvent('Tema cambiado a OSCURO', 'info');
+            }
+        }
 
         // ===== LOGIN =====
         function login() {
             const password = document.getElementById('password-input').value;
-           
+            
             if (password === CORRECT_PASSWORD) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('dashboard').style.display = 'block';
+                loadConfigs();
                 connectMQTT();
                 addEvent('Dashboard iniciado correctamente', 'info');
             } else {
                 document.getElementById('login-error').style.display = 'block';
                 document.getElementById('password-input').value = '';
                 document.getElementById('password-input').focus();
-               
+                
                 setTimeout(() => {
                     document.getElementById('login-error').style.display = 'none';
                 }, 3000);
@@ -563,13 +1606,18 @@
         function logout() {
             if (confirm('¿Confirmar cierre de sesión?')) {
                 if (client) client.end();
+                // Parar todos los beeps
+                for (let inst in beepIntervals) {
+                    stopBeep(inst);
+                }
                 document.getElementById('dashboard').style.display = 'none';
                 document.getElementById('login-screen').style.display = 'flex';
                 document.getElementById('password-input').value = '';
+                eventLog = [];
             }
         }
 
-        // ===== FUNCIONES DE UTILIDAD =====
+        // ===== UTILIDADES =====
         function updateIndicator(id, status) {
             const indicator = document.getElementById(id);
             indicator.className = 'status-indicator ' + status;
@@ -579,13 +1627,13 @@
             bomba1State = state;
             const btn = document.getElementById('bomba1-btn');
             const text = document.getElementById('bomba1-text');
-           
+            
             if (state) {
                 btn.className = 'btn on';
-                text.textContent = '[ ON ]';
+                text.textContent = 'APAGAR';
             } else {
                 btn.className = 'btn off';
-                text.textContent = '[ OFF ]';
+                text.textContent = 'ENCENDER';
             }
         }
 
@@ -593,13 +1641,13 @@
             bomba2State = state;
             const btn = document.getElementById('bomba2-btn');
             const text = document.getElementById('bomba2-text');
-           
+            
             if (state) {
                 btn.className = 'btn on';
-                text.textContent = '[ ON ]';
+                text.textContent = 'APAGAR';
             } else {
                 btn.className = 'btn off';
-                text.textContent = '[ OFF ]';
+                text.textContent = 'ENCENDER';
             }
         }
 
@@ -609,7 +1657,7 @@
             document.getElementById('servo-display').textContent = angle + '°';
         }
 
-        // ===== CONTROLES (CON PUBLICACIÓN) =====
+        // ===== CONTROLES =====
         function toggleBomba1() {
             bomba1State = !bomba1State;
             client.publish('esp32/control/bomba1', bomba1State ? '1' : '0');
@@ -624,13 +1672,13 @@
             addEvent(`Bomba 2 ${bomba2State ? 'ENCENDIDA' : 'APAGADA'}`, 'control');
         }
 
-        // ===== SLIDER =====
+        // SLIDER - SOLO ACTUALIZA AL SOLTAR
         const slider = document.getElementById('servo-slider');
-       
+        
         slider.addEventListener('input', (e) => {
             document.getElementById('servo-display').textContent = e.target.value + '°';
         });
-       
+        
         slider.addEventListener('change', (e) => {
             const angle = e.target.value;
             servoAngle = angle;
@@ -644,16 +1692,16 @@
 
             client.on('connect', () => {
                 updateIndicator('mqtt-indicator', 'connected');
-                document.getElementById('mqtt-status').textContent = 'MQTT: CONECTADO';
+                document.getElementById('mqtt-status').textContent = 'MQTT: Conectado ✓';
                 addEvent('Conectado a broker MQTT', 'info');
-               
+                
                 client.subscribe('esp32/sensores/#');
                 client.subscribe('esp32/alarmas/#');
                 client.subscribe('esp32/system/#');
                 client.subscribe('esp32/estado/bomba1');
                 client.subscribe('esp32/estado/bomba2');
                 client.subscribe('esp32/estado/valvula');
-               
+                
                 setTimeout(() => {
                     client.publish('esp32/control/request_state', '1');
                 }, 500);
@@ -661,67 +1709,56 @@
 
             client.on('message', (topic, message) => {
                 const msg = message.toString();
-               
+                
                 switch(topic) {
                     case 'esp32/sensores/nivel':
                         const nivel = parseInt(msg);
-                        document.getElementById('nivel-value').textContent = nivel + '%';
+                        const nivelEl = document.getElementById('nivel-value');
+                        nivelEl.textContent = nivel + '%';
+                        updateBar('nivel', nivel);
+                        checkAlarm('nivel', nivel);
                         break;
-                       
+                        
                     case 'esp32/sensores/presion':
                         const presion = parseInt(msg);
-                        document.getElementById('presion-value').textContent = presion + '%';
+                        const presionEl = document.getElementById('presion-value');
+                        presionEl.textContent = presion + '%';
+                        updateBar('presion', presion);
+                        checkAlarm('presion', presion);
                         break;
-                       
+                        
                     case 'esp32/sensores/puerta':
                         const puerta = msg === '1';
                         const puertaEl = document.getElementById('puerta-value');
                         puertaEl.textContent = puerta ? 'ABIERTA' : 'CERRADA';
-                        puertaEl.style.color = puerta ? '#f85149' : '#58a6ff';
+                        puertaEl.className = puerta ? 'card-value status-alarm' : 'card-value status-normal';
                         if (puerta) addEvent('⚠ Puerta ABIERTA detectada', 'alarm');
                         break;
-                       
+                        
                     case 'esp32/sensores/sensor_nivel':
                         const sensorNivel = msg === '1';
                         const sensorEl = document.getElementById('sensor-nivel-value');
                         sensorEl.textContent = sensorNivel ? 'ALTO' : 'BAJO';
-                        sensorEl.style.color = sensorNivel ? '#58a6ff' : '#d29922';
+                        sensorEl.className = sensorNivel ? 'card-value status-normal' : 'card-value status-warning';
                         break;
-                       
-                    case 'esp32/alarmas/estado':
-                        const alarmActive = msg === '1';
-                        const card = document.getElementById('card-nivel');
-                        const statusText = document.getElementById('alarm-status');
-                       
-                        if (alarmActive) {
-                            card.classList.add('alarm-active');
-                            statusText.textContent = '⚠ ALARMA ACTIVA';
-                            statusText.style.color = '#f85149';
-                            addEvent('🚨 ALARMA ACTIVADA - Nivel crítico', 'alarm');
-                        } else {
-                            card.classList.remove('alarm-active');
-                            statusText.textContent = 'SISTEMA NORMAL';
-                            statusText.style.color = '#c9d1d9';
-                        }
-                        break;
-                       
+                        
                     case 'esp32/alarmas/conteo':
                         document.getElementById('alarm-count').textContent = msg;
                         break;
-                       
+                        
                     case 'esp32/system/memory':
                         const memKB = Math.round(parseInt(msg) / 1024);
                         document.getElementById('memory').textContent = memKB + ' KB';
                         break;
-                   
+                    
                     case 'esp32/estado/bomba1':
                         updateBomba1UI(msg === '1');
                         break;
-                       
+                        
                     case 'esp32/estado/bomba2':
                         updateBomba2UI(msg === '1');
                         break;
-                       
+                        
                     case 'esp32/estado/valvula':
                         updateServoUI(parseInt(msg));
                         break;
@@ -730,13 +1767,13 @@
 
             client.on('error', (err) => {
                 updateIndicator('mqtt-indicator', 'disconnected');
-                document.getElementById('mqtt-status').textContent = 'MQTT: ERROR';
+                document.getElementById('mqtt-status').textContent = 'MQTT: Error ✗';
                 addEvent('Error de conexión MQTT', 'alarm');
             });
 
             client.on('reconnect', () => {
                 updateIndicator('mqtt-indicator', 'connecting');
-                document.getElementById('mqtt-status').textContent = 'MQTT: RECONECTANDO';
+                document.getElementById('mqtt-status').textContent = 'MQTT: Reconectando...';
             });
         }
 
@@ -746,7 +1783,7 @@
             const hours = Math.floor(uptime / 3600);
             const minutes = Math.floor((uptime % 3600) / 60);
             const seconds = uptime % 60;
-           
+            
             const pad = (n) => String(n).padStart(2, '0');
             document.getElementById('uptime').textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
         }, 1000);
