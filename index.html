@@ -1695,20 +1695,50 @@
                 document.getElementById('mqtt-status').textContent = 'MQTT: Conectado ✓';
                 addEvent('Conectado a broker MQTT', 'info');
                 
-                client.subscribe('esp32/sensores/#');
-                client.subscribe('esp32/alarmas/#');
-                client.subscribe('esp32/system/#');
-                client.subscribe('esp32/estado/bomba1');
-                client.subscribe('esp32/estado/bomba2');
-                client.subscribe('esp32/estado/valvula');
+                // ← MEJORADO: Suscripción con QoS 1 para asegurar entrega
+                const subscribeOptions = { qos: 1 };
+                
+                client.subscribe('esp32/sensores/#', subscribeOptions, (err) => {
+                    if (err) {
+                        console.error('Error suscribiendo a sensores:', err);
+                    } else {
+                        console.log('✓ Suscrito a esp32/sensores/#');
+                    }
+                });
+                
+                client.subscribe('esp32/alarmas/#', subscribeOptions, (err) => {
+                    if (err) {
+                        console.error('Error suscribiendo a alarmas:', err);
+                    } else {
+                        console.log('✓ Suscrito a esp32/alarmas/#');
+                    }
+                });
+                
+                client.subscribe('esp32/system/#', subscribeOptions, (err) => {
+                    if (err) {
+                        console.error('Error suscribiendo a system:', err);
+                    } else {
+                        console.log('✓ Suscrito a esp32/system/#');
+                    }
+                });
+                
+                client.subscribe('esp32/estado/bomba1', subscribeOptions);
+                client.subscribe('esp32/estado/bomba2', subscribeOptions);
+                client.subscribe('esp32/estado/valvula', subscribeOptions);
+                
+                console.log('✓ Todas las suscripciones completadas');
                 
                 setTimeout(() => {
                     client.publish('esp32/control/request_state', '1');
+                    console.log('📤 Estado solicitado al ESP32');
                 }, 500);
             });
 
             client.on('message', (topic, message) => {
                 const msg = message.toString();
+                
+                // ← NUEVO: Log global para debugging
+                console.log(`📨 MQTT RX: ${topic} = ${msg}`);
                 
                 switch(topic) {
                     case 'esp32/sensores/nivel':
@@ -1732,7 +1762,15 @@
                         const puertaEl = document.getElementById('puerta-value');
                         puertaEl.textContent = puerta ? 'ABIERTA' : 'CERRADA';
                         puertaEl.className = puerta ? 'card-value status-alarm' : 'card-value status-normal';
-                        if (puerta) addEvent('⚠ Puerta ABIERTA detectada', 'alarm');
+                        
+                        // ← MEJORADO: Log todos los cambios, no solo ABIERTA
+                        console.log(`🚪 Switch Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`);
+                        addEvent(`🚪 Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`, puerta ? 'alarm' : 'info');
+                        
+                        // ← NUEVO: Forzar re-render del elemento
+                        puertaEl.style.transition = 'none';
+                        void puertaEl.offsetWidth; // Trigger reflow
+                        puertaEl.style.transition = '';
                         break;
                         
                     case 'esp32/sensores/sensor_nivel':
@@ -1740,6 +1778,15 @@
                         const sensorEl = document.getElementById('sensor-nivel-value');
                         sensorEl.textContent = sensorNivel ? 'ALTO' : 'BAJO';
                         sensorEl.className = sensorNivel ? 'card-value status-normal' : 'card-value status-warning';
+                        
+                        // ← MEJORADO: Log todos los cambios
+                        console.log(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`);
+                        addEvent(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`, 'info');
+                        
+                        // ← NUEVO: Forzar re-render del elemento
+                        sensorEl.style.transition = 'none';
+                        void sensorEl.offsetWidth; // Trigger reflow
+                        sensorEl.style.transition = '';
                         break;
                         
                     case 'esp32/alarmas/conteo':
