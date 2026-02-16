@@ -1,0 +1,20 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCCdJ9YirX__bPZEMTP2LwhSKZl2QNCTbU",
+  authDomain: "telemetria-nano-dede4.firebaseapp.com",
+  projectId: "telemetria-nano-dede4",
+  storageBucket: "telemetria-nano-dede4.firebasestorage.app",
+  messagingSenderId: "906041908876",
+  appId: "1:906041908876:web:3cc110596a45ff09e4a5a9"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+
+BErEPxenFDNg06KldgleXvc5IVotF5WsmZ23GPatkCDa0WvSHVLxkijM7Jd6fc6j9d49L4wbrHOEavsFlq6lRAw
