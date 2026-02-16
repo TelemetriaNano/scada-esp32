@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCADA NANO v2.0 - Dashboard Industrial Completo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+    
+    <!-- ===== FIREBASE SDK ===== -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -249,6 +254,35 @@
             50% { opacity: 0.6; }
         }
         
+        /* ===== PUSH NOTIFICATIONS BUTTON ===== */
+        .push-notif-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .push-notif-btn.disabled {
+            background: #808080;
+            color: white;
+            border-color: #606060;
+            opacity: 0.6;
+        }
+        
+        .push-notif-btn.enabled {
+            background: linear-gradient(135deg, #00AA00, #00CC00);
+            color: white;
+            border-color: #00AA00;
+        }
+        
+        .push-notif-btn:hover:not(.disabled) {
+            box-shadow: 0 0 16px rgba(0, 170, 0, 0.6);
+        }
+        
         /* ===== SILENCE ALL BUTTON ===== */
         .silence-all-btn {
             padding: 12px 24px;
@@ -377,14 +411,14 @@
         .analog-display {
             display: flex;
             align-items: center;
-            justify-content: center; /* ← CENTRADO */
-            gap: 15px; /* ← Era 20px, ahora 15px (más junto) */
+            justify-content: center;
+            gap: 15px;
             margin: 15px 0;
         }
         
         .value-container {
-            flex: 0 1 auto; /* ← No crece tanto, más compacto */
-            text-align: right; /* ← Alineado a la derecha para estar más cerca de la barra */
+            flex: 0 1 auto;
+            text-align: right;
         }
         
         .card-value {
@@ -397,7 +431,7 @@
             display: flex;
             gap: 8px;
             margin-top: 5px;
-            justify-content: flex-end; /* ← Alineado a la derecha */
+            justify-content: flex-end;
         }
         
         .alarm-badge {
@@ -426,7 +460,7 @@
             flex-direction: column;
             align-items: center;
             gap: 5px;
-            flex-shrink: 0; /* ← NO se encoge en mobile */
+            flex-shrink: 0;
         }
         
         .bar-label {
@@ -435,10 +469,10 @@
         }
         
         .vertical-bar {
-            width: 24px;  /* ← Era 30px, ahora 24px (6px menos) */
-            height: 150px; /* ← Era 200px, ahora 150px para mobile */
+            width: 24px;
+            height: 150px;
             background: #333;
-            border-radius: 12px; /* ← Ajustado proporcionalmente */
+            border-radius: 12px;
             position: relative;
             overflow: hidden;
             border: 2px solid;
@@ -460,7 +494,7 @@
             left: 0;
             width: 100%;
             transition: all 0.5s ease;
-            border-radius: 0 0 10px 10px; /* ← Ajustado */
+            border-radius: 0 0 10px 10px;
         }
         
         .bar-fill.green {
@@ -501,7 +535,6 @@
             transform: translateY(-6px);
         }
         
-        /* Tooltip */
         .marker::after {
             content: attr(data-value);
             position: absolute;
@@ -526,7 +559,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: 150px; /* ← Ajustado */
+            height: 150px;
             font-size: 10px;
             opacity: 0.6;
         }
@@ -960,10 +993,9 @@
             .login-box { min-width: 300px; padding: 30px; }
             .header { flex-direction: column; gap: 15px; }
             .header h1 { font-size: 1.8em; }
-            .card-value { font-size: 3.5em; } /* ← Era 2.5em, ahora 3.5em (+10px aprox) */
+            .card-value { font-size: 3.5em; }
             .container { grid-template-columns: 1fr; }
             .modal-content { min-width: 90%; }
-            /* Valor y barra en la misma línea, centrados */
         }
     </style>
 </head>
@@ -1004,6 +1036,12 @@
             </div>
             <div class="status-item">
                 <span>💾 Memoria: <strong id="memory">0 KB</strong></span>
+            </div>
+            <!-- ===== BOTÓN PUSH NOTIFICATIONS ===== -->
+            <div class="status-item">
+                <button class="push-notif-btn disabled" id="push-btn" onclick="enablePushNotifications()">
+                    🔔 <span id="push-text">Activar Notificaciones</span>
+                </button>
             </div>
             <div class="status-item">
                 <button class="silence-all-btn" id="silence-all" onclick="silenceAllAlarms()">
@@ -1188,7 +1226,24 @@
     </div>
 
     <script>
-        // ===== CONFIGURACIÓN =====
+        // ===== CONFIGURACIÓN FIREBASE =====
+        const firebaseConfig = {
+            apiKey: "AIzaSyCCdJ9YirX__bPZEMTP2LwhSKZl2QNCTbU",
+            authDomain: "telemetria-nano-dede4.firebaseapp.com",
+            projectId: "telemetria-nano-dede4",
+            storageBucket: "telemetria-nano-dede4.firebasestorage.app",
+            messagingSenderId: "906041908876",
+            appId: "1:906041908876:web:3cc110596a45ff09e4a5a9"
+        };
+
+        const vapidKey = "BErEPxenFDNg06KldgleXvc5IVotF5WsmZ23GPatkCDa0WvSHVLxkijM7Jd6fc6j9d49L4wbrHOEavsFlq6lRAw";
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const messaging = firebase.messaging();
+        let pushNotificationsEnabled = false;
+        
+        // ===== CONFIGURACIÓN MQTT =====
         const CORRECT_PASSWORD = "Nano01";
         const broker = "wss://430b579b966d4e73a269ce0c803564a7.s1.eu.hivemq.cloud:8884/mqtt";
         const options = {
@@ -1206,7 +1261,7 @@
         let servoAngle = 0;
         let startTime = Date.now();
         let eventLog = [];
-        const MAX_EVENTS = 30; // ← Cambiado de 10 a 30
+        const MAX_EVENTS = 30;
         
         // Audio Context para beeps
         let audioContext;
@@ -1234,16 +1289,151 @@
             }
         };
         
-        // Cargar configuración desde localStorage
+        // ===== PUSH NOTIFICATIONS =====
+        async function enablePushNotifications() {
+            try {
+                const btn = document.getElementById('push-btn');
+                const text = document.getElementById('push-text');
+                
+                btn.disabled = true;
+                text.textContent = 'Solicitando permiso...';
+                
+                const permission = await Notification.requestPermission();
+                
+                if (permission === 'granted') {
+                    // Registrar service worker
+                    await registerServiceWorker();
+                    
+                    // Obtener token FCM
+                    const token = await messaging.getToken({ vapidKey });
+                    console.log('✅ Token FCM obtenido:', token.substr(0, 30) + '...');
+                    
+                    // Guardar token
+                    localStorage.setItem('fcm_token', token);
+                    
+                    pushNotificationsEnabled = true;
+                    btn.classList.remove('disabled');
+                    btn.classList.add('enabled');
+                    text.textContent = 'Notificaciones Activas ✓';
+                    
+                    addEvent('🔔 Notificaciones push habilitadas', 'info');
+                    
+                    // Notificación de prueba
+                    showPushNotification('✅ Notificaciones Activadas', 
+                        'Recibirás alertas cuando el tanque esté lleno');
+                } else {
+                    throw new Error('Permiso denegado');
+                }
+            } catch (error) {
+                console.error('Error al habilitar notificaciones:', error);
+                const btn = document.getElementById('push-btn');
+                const text = document.getElementById('push-text');
+                text.textContent = 'Error - Reintentar';
+                btn.disabled = false;
+                addEvent('❌ Error al habilitar notificaciones', 'alarm');
+                alert('No se pudieron activar las notificaciones. Verifica los permisos del navegador.');
+            }
+        }
+        
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                // Service Worker inline como Blob
+                const swCode = `
+                    importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
+                    importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
+                    
+                    firebase.initializeApp({
+                        apiKey: "AIzaSyCCdJ9YirX__bPZEMTP2LwhSKZl2QNCTbU",
+                        authDomain: "telemetria-nano-dede4.firebaseapp.com",
+                        projectId: "telemetria-nano-dede4",
+                        storageBucket: "telemetria-nano-dede4.firebasestorage.app",
+                        messagingSenderId: "906041908876",
+                        appId: "1:906041908876:web:3cc110596a45ff09e4a5a9"
+                    });
+                    
+                    const messaging = firebase.messaging();
+                    
+                    messaging.onBackgroundMessage((payload) => {
+                        console.log('Mensaje recibido en segundo plano:', payload);
+                        
+                        const notificationTitle = payload.notification.title || '🏭 SCADA NANO';
+                        const notificationOptions = {
+                            body: payload.notification.body,
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🏭</text></svg>',
+                            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🔔</text></svg>',
+                            vibrate: [300, 100, 200, 100, 300],
+                            requireInteraction: true,
+                            tag: 'scada-alarm'
+                        };
+                        
+                        return self.registration.showNotification(notificationTitle, notificationOptions);
+                    });
+                    
+                    self.addEventListener('notificationclick', (event) => {
+                        event.notification.close();
+                        event.waitUntil(
+                            clients.matchAll({ type: 'window', includeUncontrolled: true })
+                                .then((clientList) => {
+                                    for (let client of clientList) {
+                                        if ('focus' in client) return client.focus();
+                                    }
+                                    if (clients.openWindow) return clients.openWindow('/');
+                                })
+                        );
+                    });
+                `;
+                
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                
+                const registration = await navigator.serviceWorker.register(swUrl);
+                console.log('✅ Service Worker registrado');
+                return registration;
+            }
+        }
+        
+        function showPushNotification(title, body) {
+            if (!pushNotificationsEnabled) return;
+            
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🏭</text></svg>',
+                    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="75" font-size="75">🔔</text></svg>',
+                    vibrate: [300, 100, 200, 100, 300],
+                    requireInteraction: true,
+                    tag: 'scada-alarm'
+                });
+            }
+        }
+        
+        // Escuchar mensajes en primer plano
+        messaging.onMessage((payload) => {
+            console.log('📩 Notificación recibida:', payload);
+            showPushNotification(payload.notification.title, payload.notification.body);
+        });
+        
+        // ===== FUNCIONES ORIGINALES =====
+        
         function loadConfigs() {
             const saved = localStorage.getItem('scada_alarm_configs');
             if (saved) {
                 alarmConfigs = JSON.parse(saved);
             }
             updateAllMarkers();
+            
+            // Verificar si ya tiene notificaciones habilitadas
+            if (Notification.permission === 'granted' && localStorage.getItem('fcm_token')) {
+                pushNotificationsEnabled = true;
+                const btn = document.getElementById('push-btn');
+                const text = document.getElementById('push-text');
+                btn.classList.remove('disabled');
+                btn.classList.add('enabled');
+                text.textContent = 'Notificaciones Activas ✓';
+                registerServiceWorker(); // Re-registrar SW
+            }
         }
         
-        // Guardar configuración en localStorage
         function saveConfigs() {
             localStorage.setItem('scada_alarm_configs', JSON.stringify(alarmConfigs));
         }
@@ -1277,12 +1467,12 @@
         }
         
         function startBeep(instrument) {
-            if (beepIntervals[instrument]) return; // Ya está sonando
+            if (beepIntervals[instrument]) return;
             
-            playBeep(); // Beep inmediato
+            playBeep();
             beepIntervals[instrument] = setInterval(() => {
                 playBeep();
-            }, 10000); // Cada 10 segundos
+            }, 10000);
         }
         
         function stopBeep(instrument) {
@@ -1298,7 +1488,6 @@
             const state = alarmStates[instrument];
             
             if (!config.alarmEnabled) {
-                // Si las alarmas están desactivadas, limpiar todo
                 if (state.high || state.low) {
                     state.high = false;
                     state.low = false;
@@ -1319,7 +1508,12 @@
                 alarmTriggered = true;
                 alarmType = 'ALTA';
                 addEvent(`🚨 ALARMA ALTA - ${instrument.toUpperCase()}: ${value}% (>= ${config.high}%)`, 'alarm');
-            } else if (value < config.high - 2 && state.high) { // Histeresis 2%
+                
+                // ===== ENVIAR NOTIFICACIÓN PUSH (SOLO PARA NIVEL Y ALARMA ALTA) =====
+                if (instrument === 'nivel') {
+                    showPushNotification('🚨 TANQUE LLENO', `Nivel detectado: ${value}%`);
+                }
+            } else if (value < config.high - 2 && state.high) {
                 state.high = false;
                 addEvent(`✓ Alarma alta normalizada - ${instrument.toUpperCase()}`, 'info');
             }
@@ -1331,18 +1525,16 @@
                 alarmTriggered = true;
                 alarmType = 'BAJA';
                 addEvent(`⚠ ALARMA BAJA - ${instrument.toUpperCase()}: ${value}% (<= ${config.low}%)`, 'alarm');
-            } else if (value > config.low + 2 && state.low) { // Histeresis 2%
+            } else if (value > config.low + 2 && state.low) {
                 state.low = false;
                 addEvent(`✓ Alarma baja normalizada - ${instrument.toUpperCase()}`, 'info');
             }
             
-            // Iniciar beep si es nueva alarma no reconocida
             if (alarmTriggered && config.beepEnabled && !state.acknowledged) {
                 initAudio();
                 startBeep(instrument);
             }
             
-            // Si ya no hay alarmas, parar beep
             if (!state.high && !state.low) {
                 stopBeep(instrument);
                 state.acknowledged = false;
@@ -1358,11 +1550,9 @@
             const badgeHigh = document.getElementById(`${instrument}-badge-high`);
             const badgeLow = document.getElementById(`${instrument}-badge-low`);
             
-            // Update badges
             badgeHigh.style.display = state.high ? 'inline-block' : 'none';
             badgeLow.style.display = state.low ? 'inline-block' : 'none';
             
-            // Update card alarm state
             if (state.high || state.low) {
                 card.classList.add('alarm-active');
                 if (!state.acknowledged) {
@@ -1375,7 +1565,6 @@
                 ackBtn.classList.remove('visible');
             }
             
-            // Update silence all button
             updateSilenceAllButton();
         }
         
@@ -1469,7 +1658,7 @@
                     beepEnabled: true
                 };
                 saveConfigs();
-                openConfig(currentConfigInstrument); // Reload
+                openConfig(currentConfigInstrument);
                 updateMarkers(currentConfigInstrument);
                 addEvent(`🔄 Configuración restaurada - ${currentConfigInstrument.toUpperCase()}`, 'control');
             }
@@ -1482,7 +1671,6 @@
             
             bar.style.height = value + '%';
             
-            // Change color based on setpoint
             if (value >= config.high || value <= config.low) {
                 bar.className = 'bar-fill yellow';
             } else {
@@ -1496,14 +1684,12 @@
             
             container.innerHTML = '';
             
-            // High marker
             const highMarker = document.createElement('div');
             highMarker.className = 'marker high';
             highMarker.style.bottom = config.high + '%';
             highMarker.setAttribute('data-value', `H: ${config.high}%`);
             container.appendChild(highMarker);
             
-            // Low marker
             const lowMarker = document.createElement('div');
             lowMarker.className = 'marker low';
             lowMarker.style.bottom = config.low + '%';
@@ -1546,7 +1732,6 @@
             `).join('');
         }
         
-        // ===== EVENT LOG MODAL =====
         function openEventLog() {
             document.getElementById('event-log-modal').classList.add('visible');
             updateEventLogDisplay();
@@ -1606,7 +1791,6 @@
         function logout() {
             if (confirm('¿Confirmar cierre de sesión?')) {
                 if (client) client.end();
-                // Parar todos los beeps
                 for (let inst in beepIntervals) {
                     stopBeep(inst);
                 }
@@ -1672,7 +1856,6 @@
             addEvent(`Bomba 2 ${bomba2State ? 'ENCENDIDA' : 'APAGADA'}`, 'control');
         }
 
-        // SLIDER - SOLO ACTUALIZA AL SOLTAR
         const slider = document.getElementById('servo-slider');
         
         slider.addEventListener('input', (e) => {
@@ -1695,49 +1878,23 @@
                 document.getElementById('mqtt-status').textContent = 'MQTT: Conectado ✓';
                 addEvent('Conectado a broker MQTT', 'info');
                 
-                // ← MEJORADO: Suscripción con QoS 1 para asegurar entrega
                 const subscribeOptions = { qos: 1 };
                 
-                client.subscribe('esp32/sensores/#', subscribeOptions, (err) => {
-                    if (err) {
-                        console.error('Error suscribiendo a sensores:', err);
-                    } else {
-                        console.log('✓ Suscrito a esp32/sensores/#');
-                    }
-                });
-                
-                client.subscribe('esp32/alarmas/#', subscribeOptions, (err) => {
-                    if (err) {
-                        console.error('Error suscribiendo a alarmas:', err);
-                    } else {
-                        console.log('✓ Suscrito a esp32/alarmas/#');
-                    }
-                });
-                
-                client.subscribe('esp32/system/#', subscribeOptions, (err) => {
-                    if (err) {
-                        console.error('Error suscribiendo a system:', err);
-                    } else {
-                        console.log('✓ Suscrito a esp32/system/#');
-                    }
-                });
-                
+                client.subscribe('esp32/sensores/#', subscribeOptions);
+                client.subscribe('esp32/alarmas/#', subscribeOptions);
+                client.subscribe('esp32/system/#', subscribeOptions);
                 client.subscribe('esp32/estado/bomba1', subscribeOptions);
                 client.subscribe('esp32/estado/bomba2', subscribeOptions);
                 client.subscribe('esp32/estado/valvula', subscribeOptions);
                 
-                console.log('✓ Todas las suscripciones completadas');
-                
                 setTimeout(() => {
                     client.publish('esp32/control/request_state', '1');
-                    console.log('📤 Estado solicitado al ESP32');
                 }, 500);
             });
 
             client.on('message', (topic, message) => {
                 const msg = message.toString();
                 
-                // ← NUEVO: Log global para debugging
                 console.log(`📨 MQTT RX: ${topic} = ${msg}`);
                 
                 switch(topic) {
@@ -1763,13 +1920,11 @@
                         puertaEl.textContent = puerta ? 'ABIERTA' : 'CERRADA';
                         puertaEl.className = puerta ? 'card-value status-alarm' : 'card-value status-normal';
                         
-                        // ← MEJORADO: Log todos los cambios, no solo ABIERTA
                         console.log(`🚪 Switch Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`);
                         addEvent(`🚪 Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`, puerta ? 'alarm' : 'info');
                         
-                        // ← NUEVO: Forzar re-render del elemento
                         puertaEl.style.transition = 'none';
-                        void puertaEl.offsetWidth; // Trigger reflow
+                        void puertaEl.offsetWidth;
                         puertaEl.style.transition = '';
                         break;
                         
@@ -1779,13 +1934,11 @@
                         sensorEl.textContent = sensorNivel ? 'ALTO' : 'BAJO';
                         sensorEl.className = sensorNivel ? 'card-value status-normal' : 'card-value status-warning';
                         
-                        // ← MEJORADO: Log todos los cambios
                         console.log(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`);
                         addEvent(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`, 'info');
                         
-                        // ← NUEVO: Forzar re-render del elemento
                         sensorEl.style.transition = 'none';
-                        void sensorEl.offsetWidth; // Trigger reflow
+                        void sensorEl.offsetWidth;
                         sensorEl.style.transition = '';
                         break;
                         
