@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCADA NANO v2.0 - Dashboard Industrial Completo</title>
+    <!-- ===== MQTT ===== -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
-    
-    <!-- ===== FIREBASE SDK ===== -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1225,7 +1222,14 @@
         </div>
     </div>
 
+    <!-- ===== FIREBASE SDK ===== -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+
     <script>
+        // ===== CONFIGURACIÓN (PRIMERO) =====
+        const CORRECT_PASSWORD = "Nano01";
+        
         // ===== CONFIGURACIÓN FIREBASE =====
         const firebaseConfig = {
             apiKey: "AIzaSyCCdJ9YirX__bPZEMTP2LwhSKZl2QNCTbU",
@@ -1238,13 +1242,29 @@
 
         const vapidKey = "BErEPxenFDNg06KldgleXvc5IVotF5WsmZ23GPatkCDa0WvSHVLxkijM7Jd6fc6j9d49L4wbrHOEavsFlq6lRAw";
 
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const messaging = firebase.messaging();
+        // Inicializar Firebase cuando esté disponible
+        let messaging = null;
+        
+        function initFirebase() {
+            if (typeof firebase === 'undefined') {
+                console.error('❌ Firebase no está cargado');
+                return false;
+            }
+            
+            try {
+                firebase.initializeApp(firebaseConfig);
+                messaging = firebase.messaging();
+                console.log('✅ Firebase inicializado correctamente');
+                return true;
+            } catch (error) {
+                console.error('❌ Error inicializando Firebase:', error);
+                return false;
+            }
+        }
+        
         let pushNotificationsEnabled = false;
         
         // ===== CONFIGURACIÓN MQTT =====
-        const CORRECT_PASSWORD = "Nano01";
         const broker = "wss://430b579b966d4e73a269ce0c803564a7.s1.eu.hivemq.cloud:8884/mqtt";
         const options = {
             clientId: 'Dashboard_' + Math.random().toString(16).substr(2, 8),
@@ -1296,6 +1316,13 @@
                 const text = document.getElementById('push-text');
                 
                 btn.disabled = true;
+                text.textContent = 'Inicializando...';
+                
+                // Verificar e inicializar Firebase
+                if (!messaging && !initFirebase()) {
+                    throw new Error('Firebase no se pudo inicializar');
+                }
+                
                 text.textContent = 'Solicitando permiso...';
                 
                 const permission = await Notification.requestPermission();
@@ -1303,6 +1330,8 @@
                 if (permission === 'granted') {
                     // Registrar service worker
                     await registerServiceWorker();
+                    
+                    text.textContent = 'Obteniendo token...';
                     
                     // Obtener token FCM
                     const token = await messaging.getToken({ vapidKey });
@@ -1315,23 +1344,46 @@
                     btn.classList.remove('disabled');
                     btn.classList.add('enabled');
                     text.textContent = 'Notificaciones Activas ✓';
+                    btn.disabled = false;
                     
                     addEvent('🔔 Notificaciones push habilitadas', 'info');
                     
                     // Notificación de prueba
                     showPushNotification('✅ Notificaciones Activadas', 
                         'Recibirás alertas cuando el tanque esté lleno');
+                        
+                    // Configurar listener de mensajes
+                    messaging.onMessage((payload) => {
+                        console.log('📩 Notificación recibida:', payload);
+                        showPushNotification(payload.notification.title, payload.notification.body);
+                    });
                 } else {
-                    throw new Error('Permiso denegado');
+                    throw new Error('Permiso denegado por el usuario');
                 }
             } catch (error) {
-                console.error('Error al habilitar notificaciones:', error);
+                console.error('❌ Error al habilitar notificaciones:', error);
                 const btn = document.getElementById('push-btn');
                 const text = document.getElementById('push-text');
                 text.textContent = 'Error - Reintentar';
                 btn.disabled = false;
-                addEvent('❌ Error al habilitar notificaciones', 'alarm');
-                alert('No se pudieron activar las notificaciones. Verifica los permisos del navegador.');
+                btn.classList.remove('enabled');
+                btn.classList.add('disabled');
+                addEvent('❌ Error: ' + error.message, 'alarm');
+                
+                let mensaje = 'No se pudieron activar las notificaciones.\n\n';
+                
+                if (error.message.includes('Firebase')) {
+                    mensaje += 'Error: Firebase no se cargó correctamente.\n';
+                    mensaje += 'Verifica tu conexión a internet y recarga la página.';
+                } else if (error.message.includes('denegado')) {
+                    mensaje += 'Permiso denegado.\n';
+                    mensaje += 'Ve a la configuración del navegador y permite las notificaciones para este sitio.';
+                } else {
+                    mensaje += 'Error: ' + error.message + '\n';
+                    mensaje += 'Verifica que estés usando HTTPS o localhost.';
+                }
+                
+                alert(mensaje);
             }
         }
         
@@ -1424,13 +1476,28 @@
             
             // Verificar si ya tiene notificaciones habilitadas
             if (Notification.permission === 'granted' && localStorage.getItem('fcm_token')) {
-                pushNotificationsEnabled = true;
-                const btn = document.getElementById('push-btn');
-                const text = document.getElementById('push-text');
-                btn.classList.remove('disabled');
-                btn.classList.add('enabled');
-                text.textContent = 'Notificaciones Activas ✓';
-                registerServiceWorker(); // Re-registrar SW
+                // Inicializar Firebase
+                if (initFirebase()) {
+                    pushNotificationsEnabled = true;
+                    const btn = document.getElementById('push-btn');
+                    const text = document.getElementById('push-text');
+                    btn.classList.remove('disabled');
+                    btn.classList.add('enabled');
+                    text.textContent = 'Notificaciones Activas ✓';
+                    
+                    // Registrar service worker
+                    registerServiceWorker().catch(err => {
+                        console.error('Error re-registrando SW:', err);
+                    });
+                    
+                    // Configurar listener de mensajes
+                    if (messaging) {
+                        messaging.onMessage((payload) => {
+                            console.log('📩 Notificación recibida:', payload);
+                            showPushNotification(payload.notification.title, payload.notification.body);
+                        });
+                    }
+                }
             }
         }
         
