@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "author": "SCADA NANO v2.0 - Expandido",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot1",
+      "top": -154.9,
+      "left": 220.6,
+      "attrs": { "label": "POT 1 - Nivel" }
+    },
+    {
+      "type": "wokwi-potentiometer",
+      "id": "pot2",
+      "top": -96,
+      "left": 345,
+      "attrs": { "label": "POT 2 - Presión" }
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "servo1",
+      "top": 132.4,
+      "left": 422.4,
+      "attrs": { "label": "Válvula" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_control1",
+      "top": -70.8,
+      "left": -73,
+      "attrs": { "color": "green", "label": "Bomba 1" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_control2",
+      "top": -70.8,
+      "left": -121,
+      "attrs": { "color": "blue", "label": "Bomba 2" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_alarm",
+      "top": -70.8,
+      "left": -169,
+      "attrs": { "color": "red", "label": "Alarma" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 51.95,
+      "left": -67.2,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 71.15,
+      "left": -67.2,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": 109.55,
+      "left": -76.8,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "switch1",
+      "top": -62.8,
+      "left": 22.3,
+      "attrs": { "label": "Sensor Puerta" }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "switch2",
+      "top": -62.8,
+      "left": 79.9,
+      "attrs": { "label": "Sensor Nivel" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "pot1:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "pot1:GND", "esp:GND.2", "black", [ "v0" ] ],
+    [ "pot1:SIG", "esp:34", "orange", [ "v0" ] ],
+    [ "pot2:VCC", "esp:3V3", "red", [ "v0" ] ],
+    [ "pot2:GND", "esp:GND.2", "black", [ "v0" ] ],
+    [ "pot2:SIG", "esp:35", "yellow", [ "v0" ] ],
+    [ "servo1:V+", "esp:5V", "red", [ "v0" ] ],
+    [ "servo1:GND", "esp:GND.2", "black", [ "v0" ] ],
+    [ "servo1:PWM", "esp:18", "purple", [ "v0" ] ],
+    [ "r1:1", "led_control1:A", "green", [ "v0" ] ],
+    [ "led_control1:C", "esp:GND.1", "black", [ "v0" ] ],
+    [ "r1:2", "esp:25", "green", [ "v0" ] ],
+    [ "r2:1", "led_control2:A", "blue", [ "v0" ] ],
+    [ "led_control2:C", "esp:GND.1", "black", [ "v0" ] ],
+    [ "r2:2", "esp:26", "blue", [ "v0" ] ],
+    [ "r3:1", "led_alarm:A", "red", [ "v0" ] ],
+    [ "led_alarm:C", "esp:GND.1", "black", [ "v0" ] ],
+    [ "r3:2", "esp:27", "red", [ "v0" ] ],
+    [ "switch1:1", "esp:3V3", "red", [ "v0" ] ],
+    [ "switch1:2", "esp:32", "orange", [ "v0" ] ],
+    [ "switch2:1", "esp:3V3", "red", [ "v0" ] ],
+    [ "switch2:2", "esp:33", "green", [ "v0" ] ]
+  ],
+  "dependencies": {}
+}
