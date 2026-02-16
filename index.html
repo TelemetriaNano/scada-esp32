@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SCADA NANO v2.0 - Dashboard Industrial Completo</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
-    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1131,14 +1129,6 @@
                     <span>📋 VER ÚLTIMOS 30 EVENTOS</span>
                 </button>
             </div>
-            
-            <!-- BOTÓN BASE DE DATOS -->
-            <div class="card control-card">
-                <div class="card-title">💾 Base de Datos</div>
-                <button class="btn off" onclick="openHistorico()" style="background: linear-gradient(135deg, #00AA00 0%, #00CC00 100%);">
-                    <span>📊 VER HISTÓRICO</span>
-                </button>
-            </div>
         </div>
     </div>
 
@@ -1154,77 +1144,6 @@
             <div class="modal-buttons" style="margin-top: 15px;">
                 <button class="modal-btn cancel" onclick="closeEventLog()" style="flex: 1;">❌ Cerrar</button>
                 <button class="modal-btn save" onclick="clearEventLog()" style="flex: 1; background: #DC143C;">🗑️ Limpiar Log</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== HISTORICAL DATA MODAL ===== -->
-    <div class="modal" id="historico-modal">
-        <div class="modal-content" style="max-width: 95%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
-            <div class="modal-header">📊 Histórico de Datos</div>
-            
-            <!-- Filtros -->
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <select id="time-range" onchange="loadHistorico()" style="padding: 8px; border-radius: 8px; border: 2px solid #00AA00; font-weight: bold;">
-                    <option value="1">Última hora</option>
-                    <option value="6">Últimas 6 horas</option>
-                    <option value="24" selected>Último día (24h)</option>
-                    <option value="168">Última semana</option>
-                </select>
-                
-                <div style="flex: 1; text-align: right;">
-                    <span style="opacity: 0.7; font-size: 0.9em;" id="db-stats">Cargando...</span>
-                </div>
-            </div>
-            
-            <!-- Gráfico -->
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px; height: 300px;">
-                <canvas id="historico-chart"></canvas>
-            </div>
-            
-            <!-- Tabla de datos -->
-            <div style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                    <thead style="position: sticky; top: 0; background: rgba(0,170,0,0.2); backdrop-filter: blur(10px);">
-                        <tr>
-                            <th style="padding: 10px; text-align: left; border-bottom: 2px solid #00AA00;">Fecha/Hora</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #00AA00;">Nivel</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #00AA00;">Presión</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #00AA00;">Puerta</th>
-                            <th style="padding: 10px; text-align: center; border-bottom: 2px solid #00AA00;">Sensor</th>
-                        </tr>
-                    </thead>
-                    <tbody id="historico-table">
-                        <tr><td colspan="5" style="text-align: center; padding: 30px; opacity: 0.5;">Cargando datos...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Estadísticas -->
-            <div style="display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap; padding: 10px; background: rgba(0,170,0,0.1); border-radius: 10px;">
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 0.8em; opacity: 0.7;">Nivel Promedio</div>
-                    <div style="font-size: 1.3em; font-weight: bold; color: #00AA00;" id="stat-nivel-avg">--</div>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 0.8em; opacity: 0.7;">Presión Promedio</div>
-                    <div style="font-size: 1.3em; font-weight: bold; color: #0066CC;" id="stat-presion-avg">--</div>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 0.8em; opacity: 0.7;">Alarmas</div>
-                    <div style="font-size: 1.3em; font-weight: bold; color: #DC143C;" id="stat-alarmas">--</div>
-                </div>
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 0.8em; opacity: 0.7;">Registros</div>
-                    <div style="font-size: 1.3em; font-weight: bold;" id="stat-total">--</div>
-                </div>
-            </div>
-            
-            <!-- Botones -->
-            <div class="modal-buttons" style="margin-top: 15px;">
-                <button class="modal-btn save" onclick="exportCSV()" style="flex: 1; background: #00AA00;">📥 Exportar CSV</button>
-                <button class="modal-btn cancel" onclick="closeHistorico()" style="flex: 1;">❌ Cerrar</button>
-                <button class="modal-btn reset" onclick="limpiarDB()" style="flex: 1; background: #DC143C;">🗑️ Limpiar DB</button>
             </div>
         </div>
     </div>
@@ -1776,9 +1695,15 @@
                 document.getElementById('mqtt-status').textContent = 'MQTT: Conectado ✓';
                 addEvent('Conectado a broker MQTT', 'info');
 
+                client.subscribe('esp32/sensores/#');
+                client.subscribe('esp32/alarmas/#');
+                client.subscribe('esp32/system/#');
+                client.subscribe('esp32/estado/bomba1');
+                client.subscribe('esp32/estado/bomba2');
+                client.subscribe('esp32/estado/valvula');
                 // ← MEJORADO: Suscripción con QoS 1 para asegurar entrega
                 const subscribeOptions = { qos: 1 };
-
+                
                 client.subscribe('esp32/sensores/#', subscribeOptions, (err) => {
                     if (err) {
                         console.error('Error suscribiendo a sensores:', err);
@@ -1786,7 +1711,7 @@
                         console.log('✓ Suscrito a esp32/sensores/#');
                     }
                 });
-
+                
                 client.subscribe('esp32/alarmas/#', subscribeOptions, (err) => {
                     if (err) {
                         console.error('Error suscribiendo a alarmas:', err);
@@ -1794,7 +1719,7 @@
                         console.log('✓ Suscrito a esp32/alarmas/#');
                     }
                 });
-
+                
                 client.subscribe('esp32/system/#', subscribeOptions, (err) => {
                     if (err) {
                         console.error('Error suscribiendo a system:', err);
@@ -1802,11 +1727,11 @@
                         console.log('✓ Suscrito a esp32/system/#');
                     }
                 });
-
+                
                 client.subscribe('esp32/estado/bomba1', subscribeOptions);
                 client.subscribe('esp32/estado/bomba2', subscribeOptions);
                 client.subscribe('esp32/estado/valvula', subscribeOptions);
-
+                
                 console.log('✓ Todas las suscripciones completadas');
 
                 setTimeout(() => {
@@ -1820,7 +1745,7 @@
 
                 // ← NUEVO: Log global para debugging
                 console.log(`📨 MQTT RX: ${topic} = ${msg}`);
-
+                
                 switch(topic) {
                     case 'esp32/sensores/nivel':
                         const nivel = parseInt(msg);
@@ -1828,14 +1753,6 @@
                         nivelEl.textContent = nivel + '%';
                         updateBar('nivel', nivel);
                         checkAlarm('nivel', nivel);
-                        
-                        // ← NUEVO: Guardar en base de datos cada minuto
-                        saveTelemetria(
-                            nivel, 
-                            parseInt(document.getElementById('presion-value').textContent) || 0,
-                            document.getElementById('puerta-value').textContent === 'ABIERTA',
-                            document.getElementById('sensor-nivel-value').textContent === 'ALTO'
-                        );
                         break;
 
                     case 'esp32/sensores/presion':
@@ -1851,11 +1768,12 @@
                         const puertaEl = document.getElementById('puerta-value');
                         puertaEl.textContent = puerta ? 'ABIERTA' : 'CERRADA';
                         puertaEl.className = puerta ? 'card-value status-alarm' : 'card-value status-normal';
-
+                        if (puerta) addEvent('⚠ Puerta ABIERTA detectada', 'alarm');
+                        
                         // ← MEJORADO: Log todos los cambios, no solo ABIERTA
                         console.log(`🚪 Switch Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`);
                         addEvent(`🚪 Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`, puerta ? 'alarm' : 'info');
-
+                        
                         // ← NUEVO: Forzar re-render del elemento
                         puertaEl.style.transition = 'none';
                         void puertaEl.offsetWidth; // Trigger reflow
@@ -1867,11 +1785,11 @@
                         const sensorEl = document.getElementById('sensor-nivel-value');
                         sensorEl.textContent = sensorNivel ? 'ALTO' : 'BAJO';
                         sensorEl.className = sensorNivel ? 'card-value status-normal' : 'card-value status-warning';
-
+                        
                         // ← MEJORADO: Log todos los cambios
                         console.log(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`);
                         addEvent(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`, 'info');
-
+                        
                         // ← NUEVO: Forzar re-render del elemento
                         sensorEl.style.transition = 'none';
                         void sensorEl.offsetWidth; // Trigger reflow
@@ -1923,286 +1841,6 @@
             const pad = (n) => String(n).padStart(2, '0');
             document.getElementById('uptime').textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
         }, 1000);
-
-        // ============================================
-        // BASE DE DATOS INDEXEDDB CON DEXIE
-        // ============================================
-
-        // Crear base de datos
-        const db = new Dexie('SCADA_NANO_DB');
-        db.version(1).stores({
-            telemetria: '++id, timestamp, nivel, presion, puerta, sensor_nivel',
-            eventos: '++id, timestamp, tipo, mensaje, valor',
-            estados: '++id, timestamp, actuador, estado'
-        });
-
-        console.log('✅ IndexedDB inicializada: SCADA_NANO_DB');
-
-        let historicoChart = null;
-        let lastSaveTime = 0;
-        const SAVE_INTERVAL = 60000; // 1 minuto
-
-        // Guardar telemetría automáticamente
-        async function saveTelemetria(nivel, presion, puerta, sensorNivel) {
-            const now = Date.now();
-            if (now - lastSaveTime < SAVE_INTERVAL) return;
-            lastSaveTime = now;
-            
-            try {
-                await db.telemetria.add({
-                    timestamp: new Date(),
-                    nivel: nivel,
-                    presion: presion,
-                    puerta: puerta,
-                    sensor_nivel: sensorNivel
-                });
-                console.log(`💾 Telemetría guardada: Nivel=${nivel}%, Presión=${presion}%`);
-                await limpiarDatosAntiguos();
-            } catch (error) {
-                console.error('Error guardando telemetría:', error);
-            }
-        }
-
-        async function saveEvento(tipo, mensaje, valor = null) {
-            try {
-                await db.eventos.add({
-                    timestamp: new Date(),
-                    tipo: tipo,
-                    mensaje: mensaje,
-                    valor: valor
-                });
-            } catch (error) {
-                console.error('Error guardando evento:', error);
-            }
-        }
-
-        async function saveEstado(actuador, estado) {
-            try {
-                await db.estados.add({
-                    timestamp: new Date(),
-                    actuador: actuador,
-                    estado: estado
-                });
-            } catch (error) {
-                console.error('Error guardando estado:', error);
-            }
-        }
-
-        async function limpiarDatosAntiguos() {
-            const hace30dias = new Date();
-            hace30dias.setDate(hace30dias.getDate() - 30);
-            try {
-                await db.telemetria.where('timestamp').below(hace30dias).delete();
-            } catch (error) {
-                console.error('Error limpiando datos antiguos:', error);
-            }
-        }
-
-        // Modal de histórico
-        function openHistorico() {
-            document.getElementById('historico-modal').classList.add('visible');
-            loadHistorico();
-        }
-
-        function closeHistorico() {
-            document.getElementById('historico-modal').classList.remove('visible');
-            if (historicoChart) {
-                historicoChart.destroy();
-                historicoChart = null;
-            }
-        }
-
-        async function loadHistorico() {
-            const rangeHours = parseInt(document.getElementById('time-range').value);
-            const desde = new Date();
-            desde.setHours(desde.getHours() - rangeHours);
-            
-            try {
-                const datos = await db.telemetria.where('timestamp').above(desde).toArray();
-                updateStats(datos);
-                updateChart(datos);
-                updateTable(datos);
-            } catch (error) {
-                console.error('Error cargando histórico:', error);
-            }
-        }
-
-        function updateStats(datos) {
-            if (datos.length === 0) {
-                document.getElementById('stat-nivel-avg').textContent = '--';
-                document.getElementById('stat-presion-avg').textContent = '--';
-                document.getElementById('stat-alarmas').textContent = '0';
-                document.getElementById('stat-total').textContent = '0';
-                document.getElementById('db-stats').textContent = 'Sin datos';
-                return;
-            }
-            
-            const nivelAvg = Math.round(datos.reduce((sum, d) => sum + d.nivel, 0) / datos.length);
-            const presionAvg = Math.round(datos.reduce((sum, d) => sum + d.presion, 0) / datos.length);
-            const alarmas = datos.filter(d => d.nivel > 80 || d.nivel < 20).length;
-            
-            document.getElementById('stat-nivel-avg').textContent = nivelAvg + '%';
-            document.getElementById('stat-presion-avg').textContent = presionAvg + '%';
-            document.getElementById('stat-alarmas').textContent = alarmas;
-            document.getElementById('stat-total').textContent = datos.length.toLocaleString();
-            document.getElementById('db-stats').textContent = `${datos.length} registros`;
-        }
-
-        function updateChart(datos) {
-            const ctx = document.getElementById('historico-chart').getContext('2d');
-            
-            if (historicoChart) historicoChart.destroy();
-            
-            const labels = datos.map(d => new Date(d.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }));
-            const nivelData = datos.map(d => d.nivel);
-            const presionData = datos.map(d => d.presion);
-            
-            historicoChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Nivel (%)',
-                            data: nivelData,
-                            borderColor: '#00AA00',
-                            backgroundColor: 'rgba(0, 170, 0, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 2,
-                            pointRadius: 2
-                        },
-                        {
-                            label: 'Presión (%)',
-                            data: presionData,
-                            borderColor: '#0066CC',
-                            backgroundColor: 'rgba(0, 102, 204, 0.1)',
-                            tension: 0.4,
-                            borderWidth: 2,
-                            pointRadius: 2
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            labels: { 
-                                color: document.body.classList.contains('theme-light') ? '#000' : '#fff'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(255,255,255,0.1)' },
-                            ticks: { 
-                                color: document.body.classList.contains('theme-light') ? '#000' : '#fff',
-                                maxTicksLimit: 12
-                            }
-                        },
-                        y: {
-                            min: 0,
-                            max: 100,
-                            grid: { color: 'rgba(255,255,255,0.1)' },
-                            ticks: { 
-                                color: document.body.classList.contains('theme-light') ? '#000' : '#fff'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateTable(datos) {
-            const tbody = document.getElementById('historico-table');
-            
-            if (datos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; opacity: 0.5;">No hay datos</td></tr>';
-                return;
-            }
-            
-            const datosRecientes = datos.slice(-50).reverse();
-            
-            tbody.innerHTML = datosRecientes.map(d => {
-                const fecha = new Date(d.timestamp).toLocaleString('es-AR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                return `
-                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                        <td style="padding: 8px;">${fecha}</td>
-                        <td style="padding: 8px; text-align: center; color: ${d.nivel > 80 ? '#DC143C' : d.nivel < 20 ? '#FFD700' : '#00AA00'}; font-weight: bold;">${d.nivel}%</td>
-                        <td style="padding: 8px; text-align: center; color: #0066CC; font-weight: bold;">${d.presion}%</td>
-                        <td style="padding: 8px; text-align: center;">${d.puerta ? '🔴 ABIERTA' : '🟢 CERRADA'}</td>
-                        <td style="padding: 8px; text-align: center;">${d.sensor_nivel ? '🟢 ALTO' : '🟡 BAJO'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        async function exportCSV() {
-            const rangeHours = parseInt(document.getElementById('time-range').value);
-            const desde = new Date();
-            desde.setHours(desde.getHours() - rangeHours);
-            
-            try {
-                const datos = await db.telemetria.where('timestamp').above(desde).toArray();
-                
-                if (datos.length === 0) {
-                    alert('No hay datos para exportar');
-                    return;
-                }
-                
-                let csv = 'Fecha/Hora,Nivel (%),Presión (%),Puerta,Sensor Nivel\n';
-                
-                datos.forEach(d => {
-                    const fecha = new Date(d.timestamp).toLocaleString('es-AR');
-                    csv += `${fecha},${d.nivel},${d.presion},${d.puerta ? 'ABIERTA' : 'CERRADA'},${d.sensor_nivel ? 'ALTO' : 'BAJO'}\n`;
-                });
-                
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                const filename = `SCADA_Historico_${new Date().toISOString().split('T')[0]}.csv`;
-                
-                link.setAttribute('href', url);
-                link.setAttribute('download', filename);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                addEvent(`📥 ${datos.length} registros exportados a CSV`, 'info');
-            } catch (error) {
-                console.error('Error exportando CSV:', error);
-                alert('Error al exportar datos');
-            }
-        }
-
-        async function limpiarDB() {
-            if (!confirm('⚠️ ¿Borrar TODOS los datos históricos?\n\nEsta acción NO se puede deshacer.')) {
-                return;
-            }
-            
-            try {
-                await db.telemetria.clear();
-                await db.eventos.clear();
-                await db.estados.clear();
-                
-                console.log('🗑️ Base de datos limpiada');
-                addEvent('🗑️ Base de datos limpiada', 'info');
-                loadHistorico();
-                alert('✅ Base de datos limpiada');
-            } catch (error) {
-                console.error('Error limpiando DB:', error);
-            }
-        }
-
-        console.log('📊 Módulo de Base de Datos cargado');
-        console.log('💾 Guardando telemetría cada 60 segundos');
 
         window.onload = () => {
             document.getElementById('password-input').focus();
