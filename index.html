@@ -1,1850 +1,1028 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCADA NANO v2.0 - Dashboard Industrial Completo</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        /* ===== TEMAS ===== */
-        body.theme-light {
-            background: #DCDCDC;
-            color: #000000;
-        }
-
-        body.theme-dark {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            padding: 20px;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* ===== LOGIN SCREEN ===== */
-        #login-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-
-        body.theme-light #login-screen {
-            background: #DCDCDC;
-        }
-
-        body.theme-dark #login-screen {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        }
-
-        .login-box {
-            padding: 50px;
-            border-radius: 20px;
-            text-align: center;
-            min-width: 400px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.theme-light .login-box {
-            background: #F5F5F5;
-            border: 2px solid #808080;
-        }
-
-        body.theme-dark .login-box {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        .login-box h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .login-box p {
-            opacity: 0.8;
-            margin-bottom: 30px;
-        }
-
-        .login-box input {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.1em;
-            border: 2px solid;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            text-align: center;
-            transition: all 0.3s;
-        }
-
-        body.theme-light .login-box input {
-            background: white;
-            border-color: #808080;
-            color: #000;
-        }
-
-        body.theme-dark .login-box input {
-            background: rgba(255,255,255,0.9);
-            border-color: rgba(255,255,255,0.3);
-            color: #000;
-        }
-
-        .login-box input:focus {
-            outline: none;
-            border-color: #0066CC;
-            box-shadow: 0 0 12px rgba(0, 102, 204, 0.5);
-        }
-
-        .login-box button {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.2em;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        body.theme-light .login-box button {
-            background: #0066CC;
-            color: white;
-        }
-
-        body.theme-dark .login-box button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .login-box button:hover {
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-
-        .login-error {
-            color: #DC143C;
-            margin-top: 15px;
-            font-weight: bold;
-            display: none;
-        }
-
-        /* ===== MAIN DASHBOARD ===== */
-        #dashboard {
-            display: none;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-title {
-            flex: 1;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-
-        .header .version {
-            font-size: 0.9em;
-            opacity: 0.8;
-        }
-
-        /* ===== THEME TOGGLE ===== */
-        .theme-toggle {
-            padding: 10px 20px;
-            font-size: 14px;
-            border: 2px solid;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-weight: 600;
-        }
-
-        body.theme-light .theme-toggle {
-            background: #808080;
-            color: white;
-            border-color: #606060;
-        }
-
-        body.theme-dark .theme-toggle {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border-color: rgba(255,255,255,0.3);
-        }
-
-        .theme-toggle:hover {
-            box-shadow: 0 0 16px rgba(102, 126, 234, 0.5);
-        }
-
-        /* ===== STATUS BAR ===== */
-        .status-bar {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 30px;
-            padding: 15px;
-            border-radius: 12px;
-            transition: all 0.5s;
-        }
-
-        body.theme-light .status-bar {
-            background: #F5F5F5;
-            border: 2px solid #C0C0C0;
-        }
-
-        body.theme-dark .status-bar {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .status-indicator.connected { 
-            background: #00AA00; 
-            box-shadow: 0 0 12px #00AA00;
-        }
-        .status-indicator.connecting { 
-            background: #FFD700; 
-            box-shadow: 0 0 12px #FFD700;
-        }
-        .status-indicator.disconnected { 
-            background: #DC143C; 
-            box-shadow: 0 0 12px #DC143C;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        /* ===== SILENCE ALL BUTTON ===== */
-        .silence-all-btn {
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: bold;
-            border: 2px solid #DC143C;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #DC143C 0%, #B00020 100%);
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: none;
-        }
-
-        .silence-all-btn:hover {
-            box-shadow: 0 0 20px rgba(220, 20, 60, 0.8);
-        }
-
-        .silence-all-btn.visible {
-            display: block;
-        }
-
-        /* ===== CONTAINER ===== */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        /* ===== CARDS ===== */
-        .card {
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        body.theme-light .card {
-            background: linear-gradient(135deg, #F5F5F5 0%, #ECECEC 100%);
-            border: 2px solid #C0C0C0;
-        }
-
-        body.theme-dark .card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .card:hover {
-            box-shadow: 0 0 20px rgba(0, 102, 204, 0.4);
-        }
-
-        body.theme-light .card:hover {
-            border-color: #0066CC;
-        }
-
-        body.theme-dark .card:hover {
-            border-color: rgba(102, 126, 234, 0.6);
-        }
-
-        .card.alarm-active {
-            animation: alarmPulse 2s ease-in-out infinite;
-        }
-
-        body.theme-light .card.alarm-active {
-            border-color: #DC143C;
-            box-shadow: 0 0 24px rgba(220, 20, 60, 0.6);
-        }
-
-        body.theme-dark .card.alarm-active {
-            background: rgba(244, 67, 54, 0.2);
-            border-color: #DC143C;
-        }
-
-        @keyframes alarmPulse {
-            0%, 100% { 
-                box-shadow: 0 0 20px rgba(220, 20, 60, 0.6);
-            }
-            50% { 
-                box-shadow: 0 0 40px rgba(220, 20, 60, 0.9);
-            }
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .card-title {
-            font-size: 0.9em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-        }
-
-        body.theme-light .card-title {
-            color: #606060;
-        }
-
-        body.theme-dark .card-title {
-            opacity: 0.8;
-        }
-
-        .config-btn {
-            background: rgba(102, 126, 234, 0.2);
-            border: 1px solid rgba(102, 126, 234, 0.5);
-            color: inherit;
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .config-btn:hover {
-            background: rgba(102, 126, 234, 0.4);
-            box-shadow: 0 0 12px rgba(102, 126, 234, 0.6);
-        }
-
-        /* ===== ANALOG DISPLAY WITH VERTICAL BAR ===== */
-        .analog-display {
-            display: flex;
-            align-items: center;
-            justify-content: center; /* ← CENTRADO */
-            gap: 15px; /* ← Era 20px, ahora 15px (más junto) */
-            margin: 15px 0;
-        }
-
-        .value-container {
-            flex: 0 1 auto; /* ← No crece tanto, más compacto */
-            text-align: right; /* ← Alineado a la derecha para estar más cerca de la barra */
-        }
-
-        .card-value {
-            font-size: 3em;
-            font-weight: bold;
-            margin: 0;
-        }
-
-        .alarm-indicators {
-            display: flex;
-            gap: 8px;
-            margin-top: 5px;
-            justify-content: flex-end; /* ← Alineado a la derecha */
-        }
-
-        .alarm-badge {
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            display: none;
-        }
-
-        .alarm-badge.high {
-            background: #DC143C;
-            color: white;
-            display: inline-block;
-        }
-
-        .alarm-badge.low {
-            background: #FFD700;
-            color: #000;
-            display: inline-block;
-        }
-
-        /* ===== VERTICAL PROGRESS BAR ===== */
-        .vertical-bar-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            flex-shrink: 0; /* ← NO se encoge en mobile */
-        }
-
-        .bar-label {
-            font-size: 11px;
-            opacity: 0.7;
-        }
-
-        .vertical-bar {
-            width: 24px;  /* ← Era 30px, ahora 24px (6px menos) */
-            height: 150px; /* ← Era 200px, ahora 150px para mobile */
-            background: #333;
-            border-radius: 12px; /* ← Ajustado proporcionalmente */
-            position: relative;
-            overflow: hidden;
-            border: 2px solid;
-        }
-
-        body.theme-light .vertical-bar {
-            background: #D0D0D0;
-            border-color: #A0A0A0;
-        }
-
-        body.theme-dark .vertical-bar {
-            background: rgba(0,0,0,0.3);
-            border-color: rgba(255,255,255,0.3);
-        }
-
-        .bar-fill {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            transition: all 0.5s ease;
-            border-radius: 0 0 10px 10px; /* ← Ajustado */
-        }
-
-        .bar-fill.green {
-            background: linear-gradient(to top, #00AA00, #00FF00);
-        }
-
-        .bar-fill.yellow {
-            background: linear-gradient(to top, #FFD700, #FFFF00);
-        }
-
-        .bar-markers {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        .marker {
-            position: absolute;
-            left: -8px;
-            width: 0;
-            height: 0;
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 12px solid #FFD700;
-            filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.8));
-            cursor: help;
-            pointer-events: all;
-        }
-
-        .marker.high {
-            transform: translateY(-6px);
-        }
-
-        .marker.low {
-            transform: translateY(-6px);
-        }
-
-        /* Tooltip */
-        .marker::after {
-            content: attr(data-value);
-            position: absolute;
-            left: 20px;
-            top: -8px;
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-
-        .marker:hover::after {
-            opacity: 1;
-        }
-
-        .bar-scale {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 150px; /* ← Ajustado */
-            font-size: 10px;
-            opacity: 0.6;
-        }
-
-        .card-subtitle {
-            font-size: 0.85em;
-        }
-
-        body.theme-light .card-subtitle {
-            color: #808080;
-        }
-
-        body.theme-dark .card-subtitle {
-            opacity: 0.7;
-        }
-
-        /* ===== ACK BUTTON ===== */
-        .ack-btn {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            background: #DC143C;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            display: none;
-            transition: all 0.3s;
-        }
-
-        .ack-btn.visible {
-            display: block;
-            animation: ackPulse 1s ease-in-out infinite;
-        }
-
-        @keyframes ackPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .ack-btn:hover {
-            box-shadow: 0 0 16px rgba(220, 20, 60, 0.8);
-        }
-
-        /* ===== ESTADOS DE COLOR ISA-18.2 ===== */
-        .status-normal {
-            color: #00AA00;
-            text-shadow: 0 0 8px rgba(0, 170, 0, 0.4);
-        }
-
-        .status-warning {
-            color: #FFD700;
-            text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
-        }
-
-        .status-alarm {
-            color: #DC143C;
-            text-shadow: 0 0 8px rgba(220, 20, 60, 0.4);
-        }
-
-        /* ===== CONTROLES ===== */
-        .control-card {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .btn {
-            padding: 15px 30px;
-            font-size: 1em;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 600;
-        }
-
-        .btn:hover {
-            box-shadow: 0 0 16px rgba(0, 102, 204, 0.5);
-        }
-
-        .btn:active {
-            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn.on {
-            background: linear-gradient(135deg, #00CC00 0%, #00AA00 100%);
-            color: white;
-            box-shadow: 0 0 16px rgba(0, 170, 0, 0.5);
-        }
-
-        .btn.off {
-            background: linear-gradient(135deg, #909090 0%, #707070 100%);
-            color: white;
-        }
-
-        /* ===== SLIDER ===== */
-        .slider-container {
-            margin-top: 10px;
-        }
-
-        .slider {
-            width: 100%;
-            height: 8px;
-            border-radius: 5px;
-            outline: none;
-            -webkit-appearance: none;
-            transition: all 0.3s;
-        }
-
-        body.theme-light .slider {
-            background: #D0D0D0;
-            border: 1px solid #A0A0A0;
-        }
-
-        body.theme-dark .slider {
-            background: rgba(255,255,255,0.2);
-        }
-
-        .slider:hover {
-            box-shadow: 0 0 12px rgba(102, 126, 234, 0.4);
-        }
-
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            transition: transform 0.2s ease;
-        }
-
-        .slider::-webkit-slider-thumb:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 16px rgba(102, 126, 234, 0.8);
-        }
-
-        .slider::-moz-range-thumb {
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            border: none;
-            transition: transform 0.2s ease;
-        }
-
-        .slider::-moz-range-thumb:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 16px rgba(102, 126, 234, 0.8);
-        }
-
-        .value-display {
-            text-align: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        /* ===== CONFIG MODAL ===== */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(8px);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.visible {
-            display: flex;
-        }
-
-        .modal-content {
-            min-width: 450px;
-            max-width: 500px;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-
-        body.theme-light .modal-content {
-            background: #F5F5F5;
-            border: 2px solid #808080;
-        }
-
-        body.theme-dark .modal-content {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(20px);
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        .modal-header {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid;
-        }
-
-        body.theme-light .modal-header {
-            border-color: #C0C0C0;
-        }
-
-        body.theme-dark .modal-header {
-            border-color: rgba(255,255,255,0.3);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            opacity: 0.9;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-
-        body.theme-light .form-input {
-            background: white;
-            border-color: #A0A0A0;
-            color: #000;
-        }
-
-        body.theme-dark .form-input {
-            background: rgba(255,255,255,0.1);
-            border-color: rgba(255,255,255,0.3);
-            color: white;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #0066CC;
-            box-shadow: 0 0 12px rgba(0, 102, 204, 0.5);
-        }
-
-        /* Switch Toggle */
-        .switch-group {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        body.theme-light .switch-group {
-            background: rgba(0,0,0,0.05);
-        }
-
-        body.theme-dark .switch-group {
-            background: rgba(255,255,255,0.05);
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 30px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .switch-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #808080;
-            transition: 0.4s;
-            border-radius: 30px;
-        }
-
-        .switch-slider:before {
-            position: absolute;
-            content: "";
-            height: 22px;
-            width: 22px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: 0.4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .switch-slider {
-            background-color: #00AA00;
-        }
-
-        input:checked + .switch-slider:before {
-            transform: translateX(30px);
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-        }
-
-        .modal-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .modal-btn.save {
-            background: linear-gradient(135deg, #00AA00, #00CC00);
-            color: white;
-        }
-
-        .modal-btn.cancel {
-            background: #808080;
-            color: white;
-        }
-
-        .modal-btn.reset {
-            background: #DC143C;
-            color: white;
-        }
-
-        .modal-btn:hover {
-            box-shadow: 0 0 16px rgba(0, 102, 204, 0.5);
-        }
-
-        /* ===== EVENT LOG (IN POPUP) ===== */
-        #event-log-popup {
-            max-height: 500px;
-        }
-
-        #event-log-popup .event-item {
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            font-size: 0.95em;
-            border-left: 4px solid;
-            transition: all 0.3s;
-        }
-
-        body.theme-light #event-log-popup .event-item {
-            background: white;
-        }
-
-        body.theme-dark #event-log-popup .event-item {
-            background: rgba(255,255,255,0.05);
-        }
-
-        #event-log-popup .event-item:hover {
-            background: rgba(102, 126, 234, 0.15);
-        }
-
-        #event-log-popup .event-item.alarm {
-            border-left-color: #DC143C;
-        }
-
-        #event-log-popup .event-item.control {
-            border-left-color: #00AA00;
-        }
-
-        #event-log-popup .event-item.info {
-            border-left-color: #0066CC;
-        }
-
-        #event-log-popup .event-timestamp {
-            opacity: 0.7;
-            margin-right: 12px;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
-
-        .logout-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 2px solid;
-            font-weight: 600;
-            z-index: 100;
-        }
-
-        body.theme-light .logout-btn {
-            background: #DC143C;
-            color: white;
-            border-color: #B00020;
-        }
-
-        body.theme-dark .logout-btn {
-            background: rgba(244, 67, 54, 0.8);
-            color: white;
-            border-color: rgba(244, 67, 54, 1);
-        }
-
-        .logout-btn:hover {
-            box-shadow: 0 0 20px rgba(220, 20, 60, 0.6);
-        }
-
-        @media (max-width: 768px) {
-            .login-box { min-width: 300px; padding: 30px; }
-            .header { flex-direction: column; gap: 15px; }
-            .header h1 { font-size: 1.8em; }
-            .card-value { font-size: 3.5em; } /* ← Era 2.5em, ahora 3.5em (+10px aprox) */
-            .container { grid-template-columns: 1fr; }
-            .modal-content { min-width: 90%; }
-            /* Valor y barra en la misma línea, centrados */
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Ventas - Barritas</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 6px;
+      margin: 0 auto;
+      max-width: 500px;
+      background: #121824;
+      color: #f1f5f9;
+      font-size: 18px;
+      line-height: 1.4;
+      overflow-x: hidden;
+    }
+    .card {
+      background: #1e293b;
+      padding: 14px 10px;
+      border-radius: 14px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      border: 1px solid #334155;
+      margin-bottom: 12px;
+    }
+    h2 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: #38bdf8;
+      text-align: center;
+      font-size: 1.3em;
+    }
+    fieldset {
+      border: 1px solid #475569;
+      border-radius: 10px;
+      padding: 10px 8px;
+      margin-bottom: 14px;
+      background: #0f172a;
+    }
+    legend {
+      font-weight: bold;
+      color: #38bdf8;
+      padding: 0 6px;
+      font-size: 0.9em;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-top: 8px;
+      font-size: 0.85em;
+      color: #cbd5e1;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 4px;
+      border: 2px solid #475569;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 0.95em;
+      background: #1e293b;
+      color: #ffffff;
+      outline: none;
+    }
+    input:focus, textarea:focus {
+      border-color: #38bdf8;
+    }
+    .row {
+      display: flex;
+      gap: 6px;
+    }
+    .row > div {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .pago-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .pago-option {
+      display: flex;
+      align-items: center;
+      background: #1e293b;
+      border: 2px solid #475569;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9em;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .pago-option:focus-within {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4);
+    }
+    .pago-option input[type="radio"] {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      margin: 0;
+      position: absolute;
+    }
+    .pago-option .check-icon {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #64748b;
+      border-radius: 6px;
+      margin-right: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: transparent;
+      font-weight: 900;
+      font-size: 14px;
+    }
+    .pago-option input[type="radio"]:checked + .check-icon {
+      background: #22c55e;
+      border-color: #22c55e;
+      color: #ffffff;
+    }
+    .pago-option:has(input[type="radio"]:checked) {
+      border-color: #22c55e;
+      background: #064e3b;
+      color: #ffffff;
+    }
+
+    button.btn-action {
+      width: 100%;
+      padding: 13px;
+      margin-top: 8px;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.95em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-save { background: #16a34a; color: white; }
+    .btn-sync { background: #0284c7; color: white; }
+    .btn-menu { background: #475569; color: #ffffff; border: 1px solid #64748b; }
+    .btn-fetch { background: #9333ea; color: white; font-size: 0.85em; padding: 10px; }
+    .btn-nav { background: #334155; color: #38bdf8; border: 1px solid #475569; }
+    .btn-pending-pay { background: #ca8a04; color: #ffffff; border: 1px solid #eab308; }
+    .btn-stock { background: #d97706; color: white; }
+    .btn-stock-info { background: #0d9488; color: white; }
+    .btn-efectivo { background: #15803d; color: white; margin-top: 6px; }
+    .btn-transf { background: #0369a1; color: white; margin-top: 6px; }
+    
+    .status { margin-top: 10px; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 0.85em; }
+    .pending-badge {
+      background: #eab308;
+      color: #0f172a;
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 0.8em;
+      font-weight: 800;
+      margin-left: 6px;
+    }
+
+    /* --- PANELS Y SUBMENÚ (DRAWER) --- */
+    .drawer-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(3px);
+      z-index: 900;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .drawer-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer-panel {
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      background: #1e293b;
+      z-index: 950;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.8);
+      transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .drawer-panel.active {
+      right: 0;
+    }
+
+    .drawer-header {
+      padding: 14px;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .drawer-header h3 { margin: 0; color: #38bdf8; font-size: 1.1em; }
+    .btn-close-drawer {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.5em;
+      cursor: pointer;
+    }
+
+    .drawer-content {
+      padding: 14px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .menu-section-title {
+      font-size: 0.8em;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #64748b;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .venta-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-pendiente-pago {
+      background: #fef08a !important;
+      border: 2px solid #eab308 !important;
+      color: #0f172a !important;
+    }
+    .card-pendiente-pago .cliente-nombre { color: #0f172a !important; }
+    .card-pendiente-pago .fecha-sub { color: #713f12 !important; }
+    .card-pendiente-pago .monto-txt { color: #854d0e !important; }
+
+    .badge {
+      font-size: 0.75em;
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-weight: bold;
+      display: inline-block;
+      margin-top: 4px;
+    }
+    .badge-pending { background: #854d0e; color: #fef08a; }
+    .badge-synced { background: #166534; color: #bbf7d0; }
+    .badge-cta-corriente { background: #ca8a04; color: #ffffff; }
+
+    /* Modales */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      z-index: 1000;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 14px;
+      padding: 16px;
+      width: 100%;
+      max-width: 400px;
+      color: #f1f5f9;
+      box-shadow: 0 20px 30px rgba(0,0,0,0.8);
+    }
+    .detail-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9em; border-bottom: 1px dashed #334155; padding-bottom: 4px; }
+
+    /* TARJETAS DE STOCK GRANDE EN POPUP */
+    .stock-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+    .stock-card-big {
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      border-radius: 12px;
+      padding: 12px 6px;
+      text-align: center;
+    }
+    .stock-card-big .num {
+      font-size: 1.8em;
+      font-weight: 900;
+      color: #38bdf8;
+      margin-top: 4px;
+    }
+    .stock-card-big .label {
+      font-size: 0.75em;
+      color: #94a3b8;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+  </style>
 </head>
-<body class="theme-dark">
-    <!-- ===== PANTALLA DE LOGIN ===== -->
-    <div id="login-screen">
-        <div class="login-box">
-            <h1>🔐 SCADA NANO</h1>
-            <p>Sistema de Telemetría Industrial</p>
-            <input type="password" id="password-input" placeholder="Ingrese contraseña" 
-                   onkeypress="if(event.key==='Enter') login()">
-            <button onclick="login()">INGRESAR</button>
-            <div class="login-error" id="login-error">❌ Contraseña incorrecta</div>
+<body>
+
+<div class="card">
+  <h2>Nueva Venta</h2>
+  <form id="ventaForm">
+    <fieldset>
+      <legend>Datos Principales</legend>
+      <div class="row">
+        <div>
+          <label>Vendedor</label>
+          <input type="text" id="vendedor" placeholder="Ej. Juan" required>
         </div>
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="fechaVenta" required>
+        </div>
+      </div>
+
+      <label>Cliente</label>
+      <input type="text" id="cliente" required placeholder="Ej. María Pérez" list="listaClientas" autocomplete="off">
+      <datalist id="listaClientas"></datalist>
+    </fieldset>
+
+    <fieldset>
+      <legend>Productos (Cajas)</legend>
+      <div class="row">
+        <div>
+          <label>Cajas x 25</label>
+          <input type="number" inputmode="numeric" pattern="[0-9]*" id="cajas25" placeholder="0" min="0">
+        </div>
+        <div>
+          <label>Cajas x 12</label>
+          <input type="number" inputmode="numeric" pattern="[0-9]*" id="cajas12" placeholder="0" min="0">
+        </div>
+        <div>
+          <label>Granola x 9</label>
+          <input type="number" inputmode="numeric" pattern="[0-9]*" id="cajasGranola" placeholder="0" min="0">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Importe y Forma de Pago</legend>
+      <label>Importe Total ($)</label>
+      <input type="text" inputmode="numeric" id="importeTotalFormat" placeholder="0" required>
+
+      <label>Forma de Pago</label>
+      <div class="pago-selector">
+        <label class="pago-option" tabindex="0">
+          <input type="radio" name="medioPago" value="efectivo" required>
+          <span class="check-icon">✓</span>
+          Efectivo
+        </label>
+        <label class="pago-option" tabindex="0">
+          <input type="radio" name="medioPago" value="transferencia">
+          <span class="check-icon">✓</span>
+          Transferencia
+        </label>
+        <label class="pago-option" tabindex="0">
+          <input type="radio" name="medioPago" value="ctaCorriente">
+          <span class="check-icon">✓</span>
+          Cuenta Corriente
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Notas</legend>
+      <label>Novedades</label>
+      <textarea id="novedades" rows="2" placeholder="Detalles u observaciones..."></textarea>
+    </fieldset>
+
+    <button type="submit" class="btn-action btn-save">🟢 Guardar Venta (Offline)</button>
+  </form>
+
+  <!-- ÚNICOS BOTONES VISIBLES EN PANTALLA INICIAL -->
+  <button id="syncBtn" class="btn-action btn-sync" onclick="sincronizarConDrive()">
+    ☁️ Sincronizar con Google Drive <span id="pendingBadge" class="pending-badge">0</span>
+  </button>
+  
+  <button type="button" class="btn-action btn-menu" onclick="abrirMenuPrincipal()">
+    🍔 Menú de Opciones
+  </button>
+  
+  <div id="statusMsg"></div>
+</div>
+
+<!-- SUB-MENÚ PRINCIPAL (DRAWER) -->
+<div id="drawerOverlay" class="drawer-overlay" onclick="cerrarSubmenus()"></div>
+
+<div id="menuPrincipalPanel" class="drawer-panel">
+  <div class="drawer-header">
+    <h3>🍔 Menú de Opciones</h3>
+    <button class="btn-close-drawer" onclick="cerrarSubmenus()">&times;</button>
+  </div>
+  <div class="drawer-content">
+    
+    <div class="menu-section-title">📦 Gestión de Stock</div>
+    <button type="button" class="btn-action btn-stock" onclick="abrirModalCargaStock()">📥 Cargar / Recibir Stock</button>
+    <button type="button" class="btn-action btn-stock-info" onclick="consultarStockDisponibleModal()">📊 Ver Mi Stock Actual</button>
+
+    <div class="menu-section-title">📜 Ventas y Cobros</div>
+    <button type="button" class="btn-action btn-pending-pay" onclick="abrirDrawerPendientes()">⚠️ Ver Pendientes de Pago</button>
+    <button type="button" class="btn-action btn-nav" onclick="abrirDrawerHistorial()">📋 Ver Mis Últimas Ventas</button>
+
+    <div class="menu-section-title">☁️ Sincronización</div>
+    <button type="button" class="btn-action btn-fetch" onclick="descargarClientasDesdeNube()">📥 Descargar Clientes de la Nube</button>
+
+  </div>
+</div>
+
+<!-- PANEL HISTORIAL GENERAL -->
+<div id="drawerHistorialPanel" class="drawer-panel">
+  <div class="drawer-header">
+    <h3>Mis Últimas Ventas</h3>
+    <button class="btn-close-drawer" onclick="cerrarSubmenus()">&times;</button>
+  </div>
+  <div class="drawer-content">
+    <button type="button" class="btn-action btn-fetch" style="margin-bottom: 10px;" onclick="cargarHistorialVendedor()">🔄 Actualizar Historial</button>
+    <div id="historialStatus"></div>
+    <div id="listaVentasContainer" style="margin-top: 8px;"></div>
+  </div>
+</div>
+
+<!-- PANEL DEUDAS PENDIENTES -->
+<div id="drawerPendientesPanel" class="drawer-panel">
+  <div class="drawer-header" style="background: #451a03; border-bottom-color: #78350f;">
+    <h3 style="color: #fef08a;">⚠️ Pendientes de Pago</h3>
+    <button class="btn-close-drawer" onclick="cerrarSubmenus()">&times;</button>
+  </div>
+  <div class="drawer-content">
+    <button type="button" class="btn-action btn-pending-pay" style="margin-bottom: 10px;" onclick="cargarPendientesPago()">🔄 Actualizar Deudas</button>
+    <div id="pendientesStatus"></div>
+    <div id="listaPendientesContainer" style="margin-top: 8px;"></div>
+  </div>
+</div>
+
+<!-- MODAL 1: CARGA DE STOCK -->
+<div id="modalStock" class="modal-overlay">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:8px; margin-bottom:12px;">
+      <h3 style="margin:0; color:#38bdf8; font-size:1.1em;">Cargar Stock Recibido</h3>
+      <button class="btn-close-drawer" onclick="cerrarModalStock()">&times;</button>
+    </div>
+    
+    <form id="formCargaStock" onsubmit="guardarCargaStock(event)">
+      <div class="row">
+        <div>
+          <label>Cajas x 25</label>
+          <input type="number" inputmode="numeric" id="stockCajas25" min="0" value="0" required>
+        </div>
+        <div>
+          <label>Cajas x 12</label>
+          <input type="number" inputmode="numeric" id="stockCajas12" min="0" value="0" required>
+        </div>
+        <div>
+          <label>Granola x 9</label>
+          <input type="number" inputmode="numeric" id="stockGranola" min="0" value="0" required>
+        </div>
+      </div>
+
+      <label style="margin-top:12px;">Observaciones / Origen</label>
+      <input type="text" id="stockObservaciones" placeholder="Ej: Retirado de Depósito">
+
+      <div id="modalStockStatus" style="margin-top:10px;"></div>
+
+      <div style="display:flex; gap:8px; margin-top:16px;">
+        <button type="button" class="btn-action btn-nav" style="flex:1;" onclick="cerrarModalStock()">Cancelar</button>
+        <button type="submit" class="btn-action btn-save" style="flex:1;" id="btnGuardarStock">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 2: VER STOCK ACTUAL EN GRANDE (NUEVO) -->
+<div id="modalVerStock" class="modal-overlay">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:8px; margin-bottom:12px;">
+      <h3 id="tituloStockVendedor" style="margin:0; color:#38bdf8; font-size:1.1em;">📊 Stock Disponible</h3>
+      <button class="btn-close-drawer" onclick="cerrarModalVerStock()">&times;</button>
+    </div>
+    
+    <div id="verStockBody">
+      <div style="text-align:center; padding:15px; color:#94a3b8;">Consultando datos...</div>
     </div>
 
-    <!-- ===== DASHBOARD PRINCIPAL ===== -->
-    <div id="dashboard">
-        <button class="logout-btn" onclick="logout()">🚪 Cerrar Sesión</button>
+    <button type="button" class="btn-action btn-nav" onclick="cerrarModalVerStock()" style="margin-top:12px;">Cerrar</button>
+  </div>
+</div>
 
-        <div class="header">
-            <div class="header-title">
-                <h1>🏭 SCADA NANO</h1>
-                <div class="version">v2.0 - Sistema Industrial con Alarmas Configurables</div>
-            </div>
-            <button class="theme-toggle" onclick="toggleTheme()">
-                <span id="theme-text">☀️ TEMA CLARO</span>
-            </button>
-        </div>
-
-        <div class="status-bar">
-            <div class="status-item">
-                <div class="status-indicator connecting" id="mqtt-indicator"></div>
-                <span id="mqtt-status">MQTT: Conectando...</span>
-            </div>
-            <div class="status-item">
-                <span>🕐 Uptime: <strong id="uptime">00:00:00</strong></span>
-            </div>
-            <div class="status-item">
-                <span>💾 Memoria: <strong id="memory">0 KB</strong></span>
-            </div>
-            <div class="status-item">
-                <button class="silence-all-btn" id="silence-all" onclick="silenceAllAlarms()">
-                    🔇 SILENCIAR TODAS
-                </button>
-            </div>
-        </div>
-
-        <div class="container">
-            <!-- NIVEL TANQUE (ANALÓGICO) -->
-            <div class="card" id="card-nivel">
-                <div class="card-header">
-                    <div class="card-title">💧 Nivel de Tanque</div>
-                    <button class="config-btn" onclick="openConfig('nivel')">⚙️</button>
-                </div>
-
-                <div class="analog-display">
-                    <div class="value-container">
-                        <div class="card-value" id="nivel-value">0%</div>
-                        <div class="alarm-indicators">
-                            <span class="alarm-badge high" id="nivel-badge-high">H</span>
-                            <span class="alarm-badge low" id="nivel-badge-low">L</span>
-                        </div>
-                        <div class="card-subtitle">Potenciómetro 1</div>
-                    </div>
-
-                    <div class="vertical-bar-container">
-                        <div class="bar-label">100%</div>
-                        <div class="vertical-bar">
-                            <div class="bar-fill green" id="nivel-bar" style="height: 0%"></div>
-                            <div class="bar-markers" id="nivel-markers"></div>
-                        </div>
-                        <div class="bar-label">0%</div>
-                    </div>
-                </div>
-
-                <button class="ack-btn" id="nivel-ack" onclick="acknowledgeAlarm('nivel')">
-                    🔔 RECONOCER ALARMA
-                </button>
-            </div>
-
-            <!-- PRESIÓN (ANALÓGICO) -->
-            <div class="card" id="card-presion">
-                <div class="card-header">
-                    <div class="card-title">⚙️ Presión del Sistema</div>
-                    <button class="config-btn" onclick="openConfig('presion')">⚙️</button>
-                </div>
-
-                <div class="analog-display">
-                    <div class="value-container">
-                        <div class="card-value" id="presion-value">0%</div>
-                        <div class="alarm-indicators">
-                            <span class="alarm-badge high" id="presion-badge-high">H</span>
-                            <span class="alarm-badge low" id="presion-badge-low">L</span>
-                        </div>
-                        <div class="card-subtitle">Potenciómetro 2</div>
-                    </div>
-
-                    <div class="vertical-bar-container">
-                        <div class="bar-label">100%</div>
-                        <div class="vertical-bar">
-                            <div class="bar-fill green" id="presion-bar" style="height: 0%"></div>
-                            <div class="bar-markers" id="presion-markers"></div>
-                        </div>
-                        <div class="bar-label">0%</div>
-                    </div>
-                </div>
-
-                <button class="ack-btn" id="presion-ack" onclick="acknowledgeAlarm('presion')">
-                    🔔 RECONOCER ALARMA
-                </button>
-            </div>
-
-            <!-- SENSORES DIGITALES -->
-            <div class="card">
-                <div class="card-title">🚪 Sensor de Puerta</div>
-                <div class="card-value" id="puerta-value">CERRADA</div>
-                <div class="card-subtitle">Switch 1</div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">📏 Sensor de Nivel</div>
-                <div class="card-value" id="sensor-nivel-value">BAJO</div>
-                <div class="card-subtitle">Switch 2</div>
-            </div>
-
-            <!-- ALARMAS -->
-            <div class="card">
-                <div class="card-title">🔔 Sistema de Alarmas</div>
-                <div class="card-value" id="alarm-count">0</div>
-                <div class="card-subtitle" id="alarm-status">Sistema Normal</div>
-            </div>
-
-            <!-- CONTROL SERVO -->
-            <div class="card control-card">
-                <div class="card-title">🎛️ Control de Válvula</div>
-                <div class="slider-container">
-                    <input type="range" min="0" max="180" value="0" class="slider" 
-                           id="servo-slider">
-                    <div class="value-display" id="servo-display">0°</div>
-                </div>
-            </div>
-
-            <!-- CONTROL BOMBAS -->
-            <div class="card control-card">
-                <div class="card-title">💚 Bomba 1 (Verde)</div>
-                <button class="btn off" id="bomba1-btn" onclick="toggleBomba1()">
-                    <span id="bomba1-text">ENCENDER</span>
-                </button>
-            </div>
-
-            <div class="card control-card">
-                <div class="card-title">💙 Bomba 2 (Azul)</div>
-                <button class="btn off" id="bomba2-btn" onclick="toggleBomba2()">
-                    <span id="bomba2-text">ENCENDER</span>
-                </button>
-            </div>
-
-            <!-- BOTÓN PARA ABRIR LOG DE EVENTOS -->
-            <div class="card control-card">
-                <div class="card-title">📋 Registro de Eventos</div>
-                <button class="btn off" onclick="openEventLog()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <span>📋 VER ÚLTIMOS 30 EVENTOS</span>
-                </button>
-            </div>
-        </div>
+<!-- MODAL 3: DETALLE DE VENTA -->
+<div id="modalDetalle" class="modal-overlay">
+  <div class="modal-content">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #334155; padding-bottom:8px; margin-bottom:12px;">
+      <h3 id="modalTitulo" style="margin:0; color:#38bdf8; font-size:1.1em;">Detalle de Venta</h3>
+      <button class="btn-close-drawer" onclick="cerrarModal()">&times;</button>
     </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
 
-    <!-- ===== EVENT LOG MODAL ===== -->
-    <div class="modal" id="event-log-modal">
-        <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow: hidden; display: flex; flex-direction: column;">
-            <div class="modal-header">📋 Registro de Eventos (Últimos 30)</div>
+<script>
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLiOasSNGMlsFdJGimb9f3RSQKa_3PK0OAF-S82bwJI5EF7rRE7wD5ZW189dZyUBbwNA/exec";
 
-            <div style="flex: 1; overflow-y: auto; padding: 10px 0;">
-                <div id="event-log-popup"></div>
+  function mostrarMensaje(texto, colorFondo, targetId = 'statusMsg') {
+    const el = document.getElementById(targetId);
+    if (!el) return;
+    el.className = 'status';
+    el.style.backgroundColor = colorFondo;
+    el.style.color = '#ffffff';
+    el.innerText = texto;
+  }
+
+  document.querySelectorAll('.pago-option').forEach(option => {
+    option.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const radio = this.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+    });
+  });
+
+  const vendedorGuardado = localStorage.getItem('ultimo_vendedor') || '';
+  if (vendedorGuardado) {
+    document.getElementById('vendedor').value = vendedorGuardado;
+  }
+
+  document.getElementById('fechaVenta').valueAsDate = new Date();
+
+  const inputImporte = document.getElementById('importeTotalFormat');
+  inputImporte.addEventListener('input', function() {
+    let raw = this.value.replace(/\D/g, '');
+    if (!raw) {
+      this.value = '';
+      return;
+    }
+    this.value = new Intl.NumberFormat('es-AR').format(raw).replace(/\./g, ' ');
+  });
+
+  // --- NAVEGACIÓN DE MENÚS Y SUBMENÚS ---
+  function abrirMenuPrincipal() {
+    document.getElementById('drawerOverlay').classList.add('active');
+    document.getElementById('menuPrincipalPanel').classList.add('active');
+  }
+
+  function cerrarSubmenus() {
+    document.getElementById('drawerOverlay').classList.remove('active');
+    document.getElementById('menuPrincipalPanel').classList.remove('active');
+    document.getElementById('drawerHistorialPanel').classList.remove('active');
+    document.getElementById('drawerPendientesPanel').classList.remove('active');
+  }
+
+  function abrirDrawerHistorial() {
+    document.getElementById('menuPrincipalPanel').classList.remove('active');
+    document.getElementById('drawerHistorialPanel').classList.add('active');
+    cargarHistorialVendedor();
+  }
+
+  function abrirDrawerPendientes() {
+    document.getElementById('menuPrincipalPanel').classList.remove('active');
+    document.getElementById('drawerPendientesPanel').classList.add('active');
+    cargarPendientesPago();
+  }
+
+  /* --- POP-UP CARGA DE STOCK --- */
+  function abrirModalCargaStock() {
+    cerrarSubmenus();
+    const v = document.getElementById('vendedor').value.trim();
+    if (!v) {
+      mostrarMensaje("Ingresa primero el Vendedor en el formulario", "#ef4444");
+      return;
+    }
+    document.getElementById('formCargaStock').reset();
+    document.getElementById('modalStockStatus').innerHTML = "";
+    document.getElementById('modalStock').classList.add('active');
+  }
+
+  function cerrarModalStock() {
+    document.getElementById('modalStock').classList.remove('active');
+  }
+
+  function guardarCargaStock(event) {
+    event.preventDefault();
+    const vendedorActivo = document.getElementById('vendedor').value.trim();
+    
+    if (!vendedorActivo) {
+      mostrarMensaje("Escribe el nombre del Vendedor", "#ef4444", "modalStockStatus");
+      return;
+    }
+
+    const btn = document.getElementById("btnGuardarStock");
+    btn.disabled = true;
+    btn.innerText = "Guardando...";
+
+    const c25 = document.getElementById("stockCajas25").value || 0;
+    const c12 = document.getElementById("stockCajas12").value || 0;
+    const cGranola = document.getElementById("stockGranola").value || 0;
+    const obs = document.getElementById("stockObservaciones").value || "";
+    const hoyStr = new Date().toISOString().split('T')[0];
+
+    const params = {
+      accion: 'registrarCargaStock',
+      vendedor: vendedorActivo,
+      cajas25: c25,
+      cajas12: c12,
+      cajasGranola: cGranola,
+      observaciones: obs,
+      fecha: hoyStr
+    };
+
+    ejecutarJSONP(params, function(res) {
+      btn.disabled = false;
+      btn.innerText = "Confirmar";
+
+      if (res && res.status === "OK") {
+        mostrarMensaje(`¡Stock cargado con éxito! ID: ${res.idCarga} 🎉`, "#16a34a", "modalStockStatus");
+        setTimeout(() => {
+          cerrarModalStock();
+        }, 1500);
+      } else {
+        mostrarMensaje("Error al guardar stock: " + (res.message || "Error de red"), "#ef4444", "modalStockStatus");
+      }
+    });
+  }
+
+  /* --- POP-UP VER STOCK ACTUAL (NUEVO VISUAL) --- */
+  function consultarStockDisponibleModal() {
+    cerrarSubmenus();
+    const v = document.getElementById('vendedor').value.trim();
+    if (!v) {
+      mostrarMensaje("Ingresa el Vendedor en el formulario principal", "#ef4444");
+      return;
+    }
+
+    document.getElementById('tituloStockVendedor').innerText = `📦 Stock: ${v}`;
+    document.getElementById('verStockBody').innerHTML = `<div style="text-align:center; padding:20px; color:#eab308;">Consultando Excel en la nube...</div>`;
+    document.getElementById('modalVerStock').classList.add('active');
+
+    ejecutarJSONP({ accion: 'obtenerStockVendedor', vendedor: v }, function(res) {
+      if (res && res.status === "OK" && res.stock) {
+        const s = res.stock;
+        document.getElementById('verStockBody').innerHTML = `
+          <div class="stock-grid">
+            <div class="stock-card-big">
+              <div class="label">Cajas x 25</div>
+              <div class="num">${s.cajas25}</div>
             </div>
-
-            <div class="modal-buttons" style="margin-top: 15px;">
-                <button class="modal-btn cancel" onclick="closeEventLog()" style="flex: 1;">❌ Cerrar</button>
-                <button class="modal-btn save" onclick="clearEventLog()" style="flex: 1; background: #DC143C;">🗑️ Limpiar Log</button>
+            <div class="stock-card-big">
+              <div class="label">Cajas x 12</div>
+              <div class="num">${s.cajas12}</div>
             </div>
+            <div class="stock-card-big">
+              <div class="label">Granola x 9</div>
+              <div class="num">${s.cajasGranola}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        document.getElementById('verStockBody').innerHTML = `<div style="text-align:center; padding:20px; color:#ef4444;">No se pudo sincronizar el stock actual.</div>`;
+      }
+    });
+  }
+
+  function cerrarModalVerStock() {
+    document.getElementById('modalVerStock').classList.remove('active');
+  }
+
+  function actualizarListaClientasUI() {
+    let clientas = JSON.parse(localStorage.getItem('memoria_clientas')) || [];
+    const datalist = document.getElementById('listaClientas');
+    datalist.innerHTML = '';
+    clientas.forEach(nombre => {
+      let option = document.createElement('option');
+      option.value = nombre;
+      datalist.appendChild(option);
+    });
+  }
+
+  function guardarClientaEnMemoria(nombre) {
+    if (!nombre) return;
+    let clientas = JSON.parse(localStorage.getItem('memoria_clientas')) || [];
+    if (!clientas.includes(nombre.trim())) {
+      clientas.push(nombre.trim());
+      localStorage.setItem('memoria_clientas', JSON.stringify(clientas));
+      actualizarListaClientasUI();
+    }
+  }
+
+  function descargarClientasDesdeNube() {
+    cerrarSubmenus();
+    mostrarMensaje("Buscando clientes...", "#eab308");
+    ejecutarJSONP({ accion: 'obtenerClientas' }, function(respuesta) {
+      if (respuesta && respuesta.status === "OK" && Array.isArray(respuesta.clientas)) {
+        let clientasNube = respuesta.clientas;
+        let clientasLocales = JSON.parse(localStorage.getItem('memoria_clientas')) || [];
+        let unificadas = Array.from(new Set([...clientasLocales, ...clientasNube]));
+        localStorage.setItem('memoria_clientas', JSON.stringify(unificadas));
+        actualizarListaClientasUI();
+        mostrarMensaje(`¡Se descargaron ${clientasNube.length} clientes! ☁️`, "#16a34a");
+      } else {
+        mostrarMensaje("Error al descargar clientes ⚠️", "#ef4444");
+      }
+    });
+  }
+
+  document.getElementById('ventaForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const radioSeleccionado = document.querySelector('input[name="medioPago"]:checked');
+    if (!radioSeleccionado) {
+      mostrarMensaje("Por favor, selecciona una Forma de Pago", "#ef4444");
+      return;
+    }
+
+    const nombreVendedor = document.getElementById('vendedor').value;
+    const nombreCliente = document.getElementById('cliente').value;
+    
+    localStorage.setItem('ultimo_vendedor', nombreVendedor);
+    guardarClientaEnMemoria(nombreCliente);
+
+    const importeNumerico = inputImporte.value.replace(/\s+/g, '') || '0';
+
+    const nuevaVenta = {
+      id: Date.now(),
+      vendedor: nombreVendedor,
+      cliente: nombreCliente,
+      fechaVenta: document.getElementById('fechaVenta').value,
+      cajas25: document.getElementById('cajas25').value || 0,
+      cajas12: document.getElementById('cajas12').value || 0,
+      cajasGranola: document.getElementById('cajasGranola').value || 0,
+      importeTotal: importeNumerico,
+      medioPago: radioSeleccionado.value,
+      novedades: document.getElementById('novedades').value || "",
+      sincronizado: false
+    };
+
+    let ventas = JSON.parse(localStorage.getItem('ventas_barritas')) || [];
+    ventas.push(nuevaVenta);
+    localStorage.setItem('ventas_barritas', JSON.stringify(ventas));
+
+    actualizarContador();
+    
+    this.reset();
+    document.getElementById('vendedor').value = nombreVendedor;
+    document.getElementById('fechaVenta').valueAsDate = new Date();
+    
+    mostrarMensaje("Venta guardada localmente ✔️", "#16a34a");
+  });
+
+  function actualizarContador() {
+    let ventas = JSON.parse(localStorage.getItem('ventas_barritas')) || [];
+    document.getElementById('pendingBadge').innerText = ventas.length;
+  }
+
+  function ejecutarJSONP(parametros, callbackFinal) {
+    const callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+    parametros.callback = callbackName;
+
+    const query = new URLSearchParams(parametros).toString();
+    const script = document.createElement('script');
+    script.id = callbackName;
+
+    let timeout = setTimeout(() => {
+      cleanup();
+      callbackFinal({ status: "ERROR", message: "Timeout de conexión" });
+    }, 15000);
+
+    function cleanup() {
+      if (timeout) clearTimeout(timeout);
+      delete window[callbackName];
+      const el = document.getElementById(callbackName);
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    }
+
+    window[callbackName] = function(res) {
+      cleanup();
+      callbackFinal(res);
+    };
+
+    script.onerror = function() {
+      cleanup();
+      callbackFinal({ status: "ERROR", message: "Error de red" });
+    };
+
+    script.src = `${GOOGLE_SCRIPT_URL}?${query}`;
+    document.body.appendChild(script);
+  }
+
+  function sincronizarConDrive() {
+    let ventas = JSON.parse(localStorage.getItem('ventas_barritas')) || [];
+    if (ventas.length === 0) {
+      mostrarMensaje("No hay ventas pendientes por subir", "#64748b");
+      return;
+    }
+
+    mostrarMensaje("Subiendo a Google Drive...", "#eab308");
+
+    const params = {
+      accion: 'registrarVentasLote',
+      data: JSON.stringify(ventas)
+    };
+
+    ejecutarJSONP(params, function(respuesta) {
+      if (respuesta && respuesta.status === "OK" && Array.isArray(respuesta.idsExitosos)) {
+        let exitosos = respuesta.idsExitosos;
+        let pendientesReales = ventas.filter(v => !exitosos.includes(v.id));
+        
+        localStorage.setItem('ventas_barritas', JSON.stringify(pendientesReales));
+        actualizarContador();
+
+        if (pendientesReales.length === 0) {
+          mostrarMensaje("¡Todas las ventas subieron con éxito! 🎉", "#16a34a");
+        } else {
+          mostrarMensaje(`Se subieron ${exitosos.length}. Quedan ${pendientesReales.length} pendientes.`, "#eab308");
+        }
+      } else {
+        mostrarMensaje("Error en la sincronización ❌", "#ef4444");
+      }
+    });
+  }
+
+  function cargarHistorialVendedor() {
+    const vendedorActual = document.getElementById('vendedor').value.trim();
+    const container = document.getElementById('listaVentasContainer');
+    
+    if (!vendedorActual) {
+      mostrarMensaje("Ingresa el Vendedor en el formulario principal", "#ef4444", "historialStatus");
+      container.innerHTML = "";
+      return;
+    }
+
+    mostrarMensaje(`Cargando ventas de ${vendedorActual}...`, "#eab308", "historialStatus");
+
+    let ventasLocales = JSON.parse(localStorage.getItem('ventas_barritas')) || [];
+    let pendientesVendedor = ventasLocales.filter(v => v.vendedor.toLowerCase() === vendedorActual.toLowerCase());
+
+    ejecutarJSONP({ accion: 'obtenerUltimasVentas', vendedor: vendedorActual }, function(res) {
+      let ventasNube = [];
+      if (res && res.status === "OK" && Array.isArray(res.ventas)) {
+        ventasNube = res.ventas;
+        mostrarMensaje(`Mostrando ${pendientesVendedor.length + ventasNube.length} ventas`, "#16a34a", "historialStatus");
+      } else {
+        mostrarMensaje("Mostrando solo ventas pendientes (Offline)", "#eab308", "historialStatus");
+      }
+
+      const todas = [...pendientesVendedor, ...ventasNube];
+      renderizarListaHistorial(todas, container);
+    });
+  }
+
+  function cargarPendientesPago() {
+    const vendedorActual = document.getElementById('vendedor').value.trim();
+    const container = document.getElementById('listaPendientesContainer');
+    
+    if (!vendedorActual) {
+      mostrarMensaje("Ingresa el Vendedor en el formulario principal", "#ef4444", "pendientesStatus");
+      container.innerHTML = "";
+      return;
+    }
+
+    mostrarMensaje(`Buscando deudas de ${vendedorActual}...`, "#eab308", "pendientesStatus");
+
+    let ventasLocales = JSON.parse(localStorage.getItem('ventas_barritas')) || [];
+    let pendientesLocales = ventasLocales.filter(v => 
+      v.vendedor.toLowerCase() === vendedorActual.toLowerCase() && v.medioPago === 'ctaCorriente'
+    );
+
+    ejecutarJSONP({ accion: 'obtenerPendientesPago', vendedor: vendedorActual }, function(res) {
+      let pendientesNube = [];
+      if (res && res.status === "OK" && Array.isArray(res.ventas)) {
+        pendientesNube = res.ventas;
+        mostrarMensaje(`Se encontraron ${pendientesLocales.length + pendientesNube.length} deudas pendientes`, "#ca8a04", "pendientesStatus");
+      } else {
+        mostrarMensaje("Mostrando deudas locales pendientes de subir", "#eab308", "pendientesStatus");
+      }
+
+      const todasPendientes = [...pendientesLocales, ...pendientesNube];
+      renderizarListaHistorial(todasPendientes, container);
+    });
+  }
+
+  function renderizarListaHistorial(lista, containerEl) {
+    containerEl.innerHTML = "";
+
+    if (lista.length === 0) {
+      containerEl.innerHTML = "<div style='text-align:center; color:#94a3b8; padding:20px;'>No hay registros.</div>";
+      return;
+    }
+
+    lista.forEach(v => {
+      const card = document.createElement('div');
+      const esPendientePago = v.sincronizado && (v.medioPago === 'ctaCorriente' || String(v.pagado).toLowerCase() === 'no');
+
+      card.className = 'venta-card' + (esPendientePago ? ' card-pendiente-pago' : '');
+      
+      let badgeHtml = "";
+      if (!v.sincronizado) {
+        badgeHtml = `<span class="badge badge-pending">⌛ Pendiente Subir</span>`;
+      } else if (esPendientePago) {
+        badgeHtml = `<span class="badge badge-cta-corriente">⚠️ Deuda Pendiente</span>`;
+      } else {
+        badgeHtml = `<span class="badge badge-synced">☁️ ${v.pagado || 'Pagado'}</span>`;
+      }
+
+      const totalFormateado = new Intl.NumberFormat('es-AR').format(v.importeTotal);
+
+      card.innerHTML = `
+        <div>
+          <div class="cliente-nombre" style="font-weight: bold; color: #f8fafc;">${v.cliente}</div>
+          <div class="fecha-sub" style="font-size: 0.8em; color: #94a3b8;">📅 ${v.fechaVenta}</div>
+          ${badgeHtml}
         </div>
-    </div>
-
-    <!-- ===== CONFIG MODAL ===== -->
-    <div class="modal" id="config-modal">
-        <div class="modal-content">
-            <div class="modal-header" id="modal-title">Configuración de Alarmas</div>
-
-            <div class="form-group">
-                <label class="form-label">Set Point Alto (%)</label>
-                <input type="number" class="form-input" id="config-high" min="0" max="100" value="80">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Set Point Bajo (%)</label>
-                <input type="number" class="form-input" id="config-low" min="0" max="100" value="20">
-            </div>
-
-            <div class="switch-group">
-                <label class="form-label" style="margin: 0;">Alarmas Activadas</label>
-                <label class="switch">
-                    <input type="checkbox" id="config-alarm-enabled" checked>
-                    <span class="switch-slider"></span>
-                </label>
-            </div>
-
-            <div class="switch-group">
-                <label class="form-label" style="margin: 0;">Beep Sonoro</label>
-                <label class="switch">
-                    <input type="checkbox" id="config-beep-enabled" checked>
-                    <span class="switch-slider"></span>
-                </label>
-            </div>
-
-            <div class="modal-buttons">
-                <button class="modal-btn save" onclick="saveConfig()">💾 Guardar</button>
-                <button class="modal-btn cancel" onclick="closeConfig()">❌ Cancelar</button>
-                <button class="modal-btn reset" onclick="resetConfig()">🔄 Reset</button>
-            </div>
+        <div class="monto-txt" style="text-align: right; font-weight: bold; color: #38bdf8; font-size: 1.05em;">
+          $${totalFormateado}
         </div>
-    </div>
+      `;
+
+      card.onclick = () => abrirModalDetalle(v);
+      containerEl.appendChild(card);
+    });
+  }
+
+  function abrirModalDetalle(venta) {
+    const totalFormateado = new Intl.NumberFormat('es-AR').format(venta.importeTotal);
+    const esPendientePago = venta.sincronizado && (venta.medioPago === 'ctaCorriente' || String(venta.pagado).toLowerCase() === 'no');
+    
+    document.getElementById('modalTitulo').innerText = `Cliente: ${venta.cliente}`;
+    
+    let htmlContent = `
+      <div class="detail-row"><span>ID / Estado:</span> <strong>${venta.sincronizado ? venta.id : 'Pendiente Sincronización'}</strong></div>
+      <div class="detail-row"><span>Fecha:</span> <strong>${venta.fechaVenta}</strong></div>
+      <div class="detail-row"><span>Vendedor:</span> <strong>${venta.vendedor}</strong></div>
+      <div class="detail-row"><span>Cajas x 25:</span> <strong>${venta.cajas25}</strong></div>
+      <div class="detail-row"><span>Cajas x 12:</span> <strong>${venta.cajas12}</strong></div>
+      <div class="detail-row"><span>Granola x 9:</span> <strong>${venta.cajasGranola}</strong></div>
+      <div class="detail-row"><span>Forma Pago Orig.:</span> <strong>${venta.medioPago}</strong></div>
+      <div class="detail-row"><span>Estado Cobro:</span> <strong>${venta.pagado || 'No'}</strong></div>
+      <div class="detail-row"><span>Importe Total:</span> <strong style="color:#38bdf8; font-size:1.1em;">$${totalFormateado}</strong></div>
+      
+      <div style="margin-top:10px;">
+        <label style="font-size:0.85em; color:#94a3b8; margin-bottom:4px; display:block;">Novedades / Observaciones:</label>
+        <textarea id="modalNovedades" rows="2" style="background:#0f172a; font-size:0.9em;">${venta.novedades || ''}</textarea>
+      </div>
+      <div id="modalStatusMsg" style="margin-top:6px;"></div>
+    `;
+
+    if (esPendientePago) {
+      htmlContent += `
+        <div style="margin-top:14px; border-top:1px solid #334155; padding-top:10px;">
+          <label style="color:#fef08a; font-weight:bold; margin-bottom:6px; text-align:center; display:block;">Registrar Cobro Pendiente:</label>
+          <button class="btn-action btn-efectivo" onclick="marcarComoPagado('${venta.id}', 'efectivo')">💵 Pagado en Efectivo</button>
+          <button class="btn-action btn-transf" onclick="marcarComoPagado('${venta.id}', 'transferencia')">🏦 Pagado por Transferencia</button>
+        </div>
+      `;
+    }
+
+    document.getElementById('modalBody').innerHTML = htmlContent;
+    document.getElementById('modalDetalle').classList.add('active');
+  }
+
+  function marcarComoPagado(idVenta, metodoPago) {
+    const novedadesActualizadas = document.getElementById('modalNovedades').value;
+    const hoyStr = new Date().toISOString().split('T')[0];
+
+    mostrarMensaje("Actualizando pago en la nube...", "#eab308", "modalStatusMsg");
+
+    const params = {
+      accion: 'actualizarPago',
+      id: idVenta,
+      nuevoMedioPago: metodoPago,
+      novedades: novedadesActualizadas,
+      fechaPago: hoyStr
+    };
+
+    ejecutarJSONP(params, function(res) {
+      if (res && res.status === "OK") {
+        mostrarMensaje("¡Pago registrado en Excel! 🎉", "#16a34a", "modalStatusMsg");
+        setTimeout(() => {
+          cerrarModal();
+          if (document.getElementById('drawerPendientesPanel').classList.contains('active')) {
+            cargarPendientesPago();
+          } else {
+            cargarHistorialVendedor();
+          }
+        }, 1200);
+      } else {
+        mostrarMensaje("Error al actualizar: " + (res.message || "Error de red"), "#ef4444", "modalStatusMsg");
+      }
+    });
+  }
+
+  function cerrarModal() {
+    document.getElementById('modalDetalle').classList.remove('active');
+  }
+
+  actualizarListaClientasUI();
+  actualizarContador();
+</script>
 
-    <script>
-        // ===== CONFIGURACIÓN =====
-        const CORRECT_PASSWORD = "Nano01";
-        const broker = "wss://430b579b966d4e73a269ce0c803564a7.s1.eu.hivemq.cloud:8884/mqtt";
-        const options = {
-            clientId: 'Dashboard_' + Math.random().toString(16).substr(2, 8),
-            username: 'Telemetria-Nano',
-            password: 'Telemetria01',
-            clean: true,
-            reconnectPeriod: 5000
-        };
-
-        // ===== VARIABLES GLOBALES =====
-        let client;
-        let bomba1State = false;
-        let bomba2State = false;
-        let servoAngle = 0;
-        let startTime = Date.now();
-        let eventLog = [];
-        const MAX_EVENTS = 30; // ← Cambiado de 10 a 30
-
-        // Audio Context para beeps
-        let audioContext;
-        let beepIntervals = {};
-
-        // Estado de alarmas
-        let alarmStates = {
-            nivel: { high: false, low: false, acknowledged: false },
-            presion: { high: false, low: false, acknowledged: false }
-        };
-
-        // Configuración de alarmas (defaults)
-        let alarmConfigs = {
-            nivel: {
-                high: 80,
-                low: 20,
-                alarmEnabled: true,
-                beepEnabled: true
-            },
-            presion: {
-                high: 80,
-                low: 20,
-                alarmEnabled: true,
-                beepEnabled: true
-            }
-        };
-
-        // Cargar configuración desde localStorage
-        function loadConfigs() {
-            const saved = localStorage.getItem('scada_alarm_configs');
-            if (saved) {
-                alarmConfigs = JSON.parse(saved);
-            }
-            updateAllMarkers();
-        }
-
-        // Guardar configuración en localStorage
-        function saveConfigs() {
-            localStorage.setItem('scada_alarm_configs', JSON.stringify(alarmConfigs));
-        }
-
-        let currentConfigInstrument = null;
-
-        // ===== BEEP SONORO =====
-        function initAudio() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-        }
-
-        function playBeep() {
-            if (!audioContext) return;
-
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            oscillator.frequency.value = 800;
-            oscillator.type = 'sine';
-
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.3);
-        }
-
-        function startBeep(instrument) {
-            if (beepIntervals[instrument]) return; // Ya está sonando
-
-            playBeep(); // Beep inmediato
-            beepIntervals[instrument] = setInterval(() => {
-                playBeep();
-            }, 10000); // Cada 10 segundos
-        }
-
-        function stopBeep(instrument) {
-            if (beepIntervals[instrument]) {
-                clearInterval(beepIntervals[instrument]);
-                delete beepIntervals[instrument];
-            }
-        }
-
-        // ===== ALARM MANAGEMENT =====
-        function checkAlarm(instrument, value) {
-            const config = alarmConfigs[instrument];
-            const state = alarmStates[instrument];
-
-            if (!config.alarmEnabled) {
-                // Si las alarmas están desactivadas, limpiar todo
-                if (state.high || state.low) {
-                    state.high = false;
-                    state.low = false;
-                    state.acknowledged = false;
-                    stopBeep(instrument);
-                    updateAlarmUI(instrument);
-                }
-                return;
-            }
-
-            let alarmTriggered = false;
-            let alarmType = '';
-
-            // Check High Alarm
-            if (value >= config.high && !state.high) {
-                state.high = true;
-                state.acknowledged = false;
-                alarmTriggered = true;
-                alarmType = 'ALTA';
-                addEvent(`🚨 ALARMA ALTA - ${instrument.toUpperCase()}: ${value}% (>= ${config.high}%)`, 'alarm');
-            } else if (value < config.high - 2 && state.high) { // Histeresis 2%
-                state.high = false;
-                addEvent(`✓ Alarma alta normalizada - ${instrument.toUpperCase()}`, 'info');
-            }
-
-            // Check Low Alarm
-            if (value <= config.low && !state.low) {
-                state.low = true;
-                state.acknowledged = false;
-                alarmTriggered = true;
-                alarmType = 'BAJA';
-                addEvent(`⚠ ALARMA BAJA - ${instrument.toUpperCase()}: ${value}% (<= ${config.low}%)`, 'alarm');
-            } else if (value > config.low + 2 && state.low) { // Histeresis 2%
-                state.low = false;
-                addEvent(`✓ Alarma baja normalizada - ${instrument.toUpperCase()}`, 'info');
-            }
-
-            // Iniciar beep si es nueva alarma no reconocida
-            if (alarmTriggered && config.beepEnabled && !state.acknowledged) {
-                initAudio();
-                startBeep(instrument);
-            }
-
-            // Si ya no hay alarmas, parar beep
-            if (!state.high && !state.low) {
-                stopBeep(instrument);
-                state.acknowledged = false;
-            }
-
-            updateAlarmUI(instrument);
-        }
-
-        function updateAlarmUI(instrument) {
-            const state = alarmStates[instrument];
-            const card = document.getElementById(`card-${instrument}`);
-            const ackBtn = document.getElementById(`${instrument}-ack`);
-            const badgeHigh = document.getElementById(`${instrument}-badge-high`);
-            const badgeLow = document.getElementById(`${instrument}-badge-low`);
-
-            // Update badges
-            badgeHigh.style.display = state.high ? 'inline-block' : 'none';
-            badgeLow.style.display = state.low ? 'inline-block' : 'none';
-
-            // Update card alarm state
-            if (state.high || state.low) {
-                card.classList.add('alarm-active');
-                if (!state.acknowledged) {
-                    ackBtn.classList.add('visible');
-                } else {
-                    ackBtn.classList.remove('visible');
-                }
-            } else {
-                card.classList.remove('alarm-active');
-                ackBtn.classList.remove('visible');
-            }
-
-            // Update silence all button
-            updateSilenceAllButton();
-        }
-
-        function updateSilenceAllButton() {
-            const silenceBtn = document.getElementById('silence-all');
-            let hasActiveAlarms = false;
-
-            for (let inst in alarmStates) {
-                if ((alarmStates[inst].high || alarmStates[inst].low) && !alarmStates[inst].acknowledged) {
-                    hasActiveAlarms = true;
-                    break;
-                }
-            }
-
-            if (hasActiveAlarms) {
-                silenceBtn.classList.add('visible');
-            } else {
-                silenceBtn.classList.remove('visible');
-            }
-        }
-
-        function acknowledgeAlarm(instrument) {
-            const state = alarmStates[instrument];
-            state.acknowledged = true;
-            stopBeep(instrument);
-            updateAlarmUI(instrument);
-            addEvent(`✓ Alarma reconocida - ${instrument.toUpperCase()}`, 'control');
-        }
-
-        function silenceAllAlarms() {
-            for (let inst in alarmStates) {
-                if (alarmStates[inst].high || alarmStates[inst].low) {
-                    acknowledgeAlarm(inst);
-                }
-            }
-            addEvent('🔇 Todas las alarmas silenciadas', 'control');
-        }
-
-        // ===== CONFIG MODAL =====
-        function openConfig(instrument) {
-            currentConfigInstrument = instrument;
-            const config = alarmConfigs[instrument];
-
-            document.getElementById('modal-title').textContent = 
-                `Configuración - ${instrument.toUpperCase()}`;
-            document.getElementById('config-high').value = config.high;
-            document.getElementById('config-low').value = config.low;
-            document.getElementById('config-alarm-enabled').checked = config.alarmEnabled;
-            document.getElementById('config-beep-enabled').checked = config.beepEnabled;
-
-            document.getElementById('config-modal').classList.add('visible');
-        }
-
-        function closeConfig() {
-            document.getElementById('config-modal').classList.remove('visible');
-            currentConfigInstrument = null;
-        }
-
-        function saveConfig() {
-            if (!currentConfigInstrument) return;
-
-            const high = parseInt(document.getElementById('config-high').value);
-            const low = parseInt(document.getElementById('config-low').value);
-
-            if (high <= low) {
-                alert('⚠️ El Set Point Alto debe ser mayor que el Bajo');
-                return;
-            }
-
-            alarmConfigs[currentConfigInstrument] = {
-                high: high,
-                low: low,
-                alarmEnabled: document.getElementById('config-alarm-enabled').checked,
-                beepEnabled: document.getElementById('config-beep-enabled').checked
-            };
-
-            saveConfigs();
-            updateMarkers(currentConfigInstrument);
-            addEvent(`⚙️ Configuración guardada - ${currentConfigInstrument.toUpperCase()}`, 'control');
-            closeConfig();
-        }
-
-        function resetConfig() {
-            if (!currentConfigInstrument) return;
-
-            if (confirm('¿Restaurar configuración por defecto?')) {
-                alarmConfigs[currentConfigInstrument] = {
-                    high: 80,
-                    low: 20,
-                    alarmEnabled: true,
-                    beepEnabled: true
-                };
-                saveConfigs();
-                openConfig(currentConfigInstrument); // Reload
-                updateMarkers(currentConfigInstrument);
-                addEvent(`🔄 Configuración restaurada - ${currentConfigInstrument.toUpperCase()}`, 'control');
-            }
-        }
-
-        // ===== VERTICAL BAR =====
-        function updateBar(instrument, value) {
-            const bar = document.getElementById(`${instrument}-bar`);
-            const config = alarmConfigs[instrument];
-
-            bar.style.height = value + '%';
-
-            // Change color based on setpoint
-            if (value >= config.high || value <= config.low) {
-                bar.className = 'bar-fill yellow';
-            } else {
-                bar.className = 'bar-fill green';
-            }
-        }
-
-        function updateMarkers(instrument) {
-            const container = document.getElementById(`${instrument}-markers`);
-            const config = alarmConfigs[instrument];
-
-            container.innerHTML = '';
-
-            // High marker
-            const highMarker = document.createElement('div');
-            highMarker.className = 'marker high';
-            highMarker.style.bottom = config.high + '%';
-            highMarker.setAttribute('data-value', `H: ${config.high}%`);
-            container.appendChild(highMarker);
-
-            // Low marker
-            const lowMarker = document.createElement('div');
-            lowMarker.className = 'marker low';
-            lowMarker.style.bottom = config.low + '%';
-            lowMarker.setAttribute('data-value', `L: ${config.low}%`);
-            container.appendChild(lowMarker);
-        }
-
-        function updateAllMarkers() {
-            updateMarkers('nivel');
-            updateMarkers('presion');
-        }
-
-        // ===== EVENT LOG =====
-        function addEvent(message, type = 'info') {
-            const timestamp = new Date().toLocaleTimeString();
-            const event = { timestamp, message, type };
-
-            eventLog.unshift(event);
-            if (eventLog.length > MAX_EVENTS) {
-                eventLog.pop();
-            }
-
-            updateEventLogDisplay();
-        }
-
-        function updateEventLogDisplay() {
-            const container = document.getElementById('event-log-popup');
-            if (!container) return;
-
-            if (eventLog.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 30px; opacity: 0.6;">No hay eventos registrados</div>';
-                return;
-            }
-
-            container.innerHTML = eventLog.map(event => `
-                <div class="event-item ${event.type}">
-                    <span class="event-timestamp">[${event.timestamp}]</span>
-                    ${event.message}
-                </div>
-            `).join('');
-        }
-
-        // ===== EVENT LOG MODAL =====
-        function openEventLog() {
-            document.getElementById('event-log-modal').classList.add('visible');
-            updateEventLogDisplay();
-        }
-
-        function closeEventLog() {
-            document.getElementById('event-log-modal').classList.remove('visible');
-        }
-
-        function clearEventLog() {
-            if (confirm('¿Estás seguro de que quieres borrar todos los eventos?')) {
-                eventLog = [];
-                updateEventLogDisplay();
-                addEvent('🗑️ Registro de eventos limpiado', 'info');
-            }
-        }
-
-        // ===== TEMA =====
-        function toggleTheme() {
-            const body = document.body;
-            const themeText = document.getElementById('theme-text');
-
-            if (body.classList.contains('theme-dark')) {
-                body.classList.remove('theme-dark');
-                body.classList.add('theme-light');
-                themeText.textContent = '🌙 TEMA OSCURO';
-                addEvent('Tema cambiado a CLARO', 'info');
-            } else {
-                body.classList.remove('theme-light');
-                body.classList.add('theme-dark');
-                themeText.textContent = '☀️ TEMA CLARO';
-                addEvent('Tema cambiado a OSCURO', 'info');
-            }
-        }
-
-        // ===== LOGIN =====
-        function login() {
-            const password = document.getElementById('password-input').value;
-
-            if (password === CORRECT_PASSWORD) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block';
-                loadConfigs();
-                connectMQTT();
-                addEvent('Dashboard iniciado correctamente', 'info');
-            } else {
-                document.getElementById('login-error').style.display = 'block';
-                document.getElementById('password-input').value = '';
-                document.getElementById('password-input').focus();
-
-                setTimeout(() => {
-                    document.getElementById('login-error').style.display = 'none';
-                }, 3000);
-            }
-        }
-
-        function logout() {
-            if (confirm('¿Confirmar cierre de sesión?')) {
-                if (client) client.end();
-                // Parar todos los beeps
-                for (let inst in beepIntervals) {
-                    stopBeep(inst);
-                }
-                document.getElementById('dashboard').style.display = 'none';
-                document.getElementById('login-screen').style.display = 'flex';
-                document.getElementById('password-input').value = '';
-                eventLog = [];
-            }
-        }
-
-        // ===== UTILIDADES =====
-        function updateIndicator(id, status) {
-            const indicator = document.getElementById(id);
-            indicator.className = 'status-indicator ' + status;
-        }
-
-        function updateBomba1UI(state) {
-            bomba1State = state;
-            const btn = document.getElementById('bomba1-btn');
-            const text = document.getElementById('bomba1-text');
-
-            if (state) {
-                btn.className = 'btn on';
-                text.textContent = 'APAGAR';
-            } else {
-                btn.className = 'btn off';
-                text.textContent = 'ENCENDER';
-            }
-        }
-
-        function updateBomba2UI(state) {
-            bomba2State = state;
-            const btn = document.getElementById('bomba2-btn');
-            const text = document.getElementById('bomba2-text');
-
-            if (state) {
-                btn.className = 'btn on';
-                text.textContent = 'APAGAR';
-            } else {
-                btn.className = 'btn off';
-                text.textContent = 'ENCENDER';
-            }
-        }
-
-        function updateServoUI(angle) {
-            servoAngle = angle;
-            document.getElementById('servo-slider').value = angle;
-            document.getElementById('servo-display').textContent = angle + '°';
-        }
-
-        // ===== CONTROLES =====
-        function toggleBomba1() {
-            bomba1State = !bomba1State;
-            client.publish('esp32/control/bomba1', bomba1State ? '1' : '0');
-            updateBomba1UI(bomba1State);
-            addEvent(`Bomba 1 ${bomba1State ? 'ENCENDIDA' : 'APAGADA'}`, 'control');
-        }
-
-        function toggleBomba2() {
-            bomba2State = !bomba2State;
-            client.publish('esp32/control/bomba2', bomba2State ? '1' : '0');
-            updateBomba2UI(bomba2State);
-            addEvent(`Bomba 2 ${bomba2State ? 'ENCENDIDA' : 'APAGADA'}`, 'control');
-        }
-
-        // SLIDER - SOLO ACTUALIZA AL SOLTAR
-        const slider = document.getElementById('servo-slider');
-
-        slider.addEventListener('input', (e) => {
-            document.getElementById('servo-display').textContent = e.target.value + '°';
-        });
-
-        slider.addEventListener('change', (e) => {
-            const angle = e.target.value;
-            servoAngle = angle;
-            client.publish('esp32/control/valvula', angle.toString());
-            addEvent(`Válvula ajustada a ${angle}°`, 'control');
-        });
-
-        // ===== MQTT =====
-        function connectMQTT() {
-            client = mqtt.connect(broker, options);
-
-            client.on('connect', () => {
-                updateIndicator('mqtt-indicator', 'connected');
-                document.getElementById('mqtt-status').textContent = 'MQTT: Conectado ✓';
-                addEvent('Conectado a broker MQTT', 'info');
-
-                client.subscribe('esp32/sensores/#');
-                client.subscribe('esp32/alarmas/#');
-                client.subscribe('esp32/system/#');
-                client.subscribe('esp32/estado/bomba1');
-                client.subscribe('esp32/estado/bomba2');
-                client.subscribe('esp32/estado/valvula');
-                // ← MEJORADO: Suscripción con QoS 1 para asegurar entrega
-                const subscribeOptions = { qos: 1 };
-                
-                client.subscribe('esp32/sensores/#', subscribeOptions, (err) => {
-                    if (err) {
-                        console.error('Error suscribiendo a sensores:', err);
-                    } else {
-                        console.log('✓ Suscrito a esp32/sensores/#');
-                    }
-                });
-                
-                client.subscribe('esp32/alarmas/#', subscribeOptions, (err) => {
-                    if (err) {
-                        console.error('Error suscribiendo a alarmas:', err);
-                    } else {
-                        console.log('✓ Suscrito a esp32/alarmas/#');
-                    }
-                });
-                
-                client.subscribe('esp32/system/#', subscribeOptions, (err) => {
-                    if (err) {
-                        console.error('Error suscribiendo a system:', err);
-                    } else {
-                        console.log('✓ Suscrito a esp32/system/#');
-                    }
-                });
-                
-                client.subscribe('esp32/estado/bomba1', subscribeOptions);
-                client.subscribe('esp32/estado/bomba2', subscribeOptions);
-                client.subscribe('esp32/estado/valvula', subscribeOptions);
-                
-                console.log('✓ Todas las suscripciones completadas');
-
-                setTimeout(() => {
-                    client.publish('esp32/control/request_state', '1');
-                    console.log('📤 Estado solicitado al ESP32');
-                }, 500);
-            });
-
-            client.on('message', (topic, message) => {
-                const msg = message.toString();
-
-                // ← NUEVO: Log global para debugging
-                console.log(`📨 MQTT RX: ${topic} = ${msg}`);
-                
-                switch(topic) {
-                    case 'esp32/sensores/nivel':
-                        const nivel = parseInt(msg);
-                        const nivelEl = document.getElementById('nivel-value');
-                        nivelEl.textContent = nivel + '%';
-                        updateBar('nivel', nivel);
-                        checkAlarm('nivel', nivel);
-                        break;
-
-                    case 'esp32/sensores/presion':
-                        const presion = parseInt(msg);
-                        const presionEl = document.getElementById('presion-value');
-                        presionEl.textContent = presion + '%';
-                        updateBar('presion', presion);
-                        checkAlarm('presion', presion);
-                        break;
-
-                    case 'esp32/sensores/puerta':
-                        const puerta = msg === '1';
-                        const puertaEl = document.getElementById('puerta-value');
-                        puertaEl.textContent = puerta ? 'ABIERTA' : 'CERRADA';
-                        puertaEl.className = puerta ? 'card-value status-alarm' : 'card-value status-normal';
-                        if (puerta) addEvent('⚠ Puerta ABIERTA detectada', 'alarm');
-                        
-                        // ← MEJORADO: Log todos los cambios, no solo ABIERTA
-                        console.log(`🚪 Switch Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`);
-                        addEvent(`🚪 Puerta: ${puerta ? 'ABIERTA' : 'CERRADA'}`, puerta ? 'alarm' : 'info');
-                        
-                        // ← NUEVO: Forzar re-render del elemento
-                        puertaEl.style.transition = 'none';
-                        void puertaEl.offsetWidth; // Trigger reflow
-                        puertaEl.style.transition = '';
-                        break;
-
-                    case 'esp32/sensores/sensor_nivel':
-                        const sensorNivel = msg === '1';
-                        const sensorEl = document.getElementById('sensor-nivel-value');
-                        sensorEl.textContent = sensorNivel ? 'ALTO' : 'BAJO';
-                        sensorEl.className = sensorNivel ? 'card-value status-normal' : 'card-value status-warning';
-                        
-                        // ← MEJORADO: Log todos los cambios
-                        console.log(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`);
-                        addEvent(`📏 Sensor Nivel: ${sensorNivel ? 'ALTO' : 'BAJO'}`, 'info');
-                        
-                        // ← NUEVO: Forzar re-render del elemento
-                        sensorEl.style.transition = 'none';
-                        void sensorEl.offsetWidth; // Trigger reflow
-                        sensorEl.style.transition = '';
-                        break;
-
-                    case 'esp32/alarmas/conteo':
-                        document.getElementById('alarm-count').textContent = msg;
-                        break;
-
-                    case 'esp32/system/memory':
-                        const memKB = Math.round(parseInt(msg) / 1024);
-                        document.getElementById('memory').textContent = memKB + ' KB';
-                        break;
-
-                    case 'esp32/estado/bomba1':
-                        updateBomba1UI(msg === '1');
-                        break;
-
-                    case 'esp32/estado/bomba2':
-                        updateBomba2UI(msg === '1');
-                        break;
-
-                    case 'esp32/estado/valvula':
-                        updateServoUI(parseInt(msg));
-                        break;
-                }
-            });
-
-            client.on('error', (err) => {
-                updateIndicator('mqtt-indicator', 'disconnected');
-                document.getElementById('mqtt-status').textContent = 'MQTT: Error ✗';
-                addEvent('Error de conexión MQTT', 'alarm');
-            });
-
-            client.on('reconnect', () => {
-                updateIndicator('mqtt-indicator', 'connecting');
-                document.getElementById('mqtt-status').textContent = 'MQTT: Reconectando...';
-            });
-        }
-
-        // ===== UPTIME =====
-        setInterval(() => {
-            const uptime = Math.floor((Date.now() - startTime) / 1000);
-            const hours = Math.floor(uptime / 3600);
-            const minutes = Math.floor((uptime % 3600) / 60);
-            const seconds = uptime % 60;
-
-            const pad = (n) => String(n).padStart(2, '0');
-            document.getElementById('uptime').textContent = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-        }, 1000);
-
-        window.onload = () => {
-            document.getElementById('password-input').focus();
-        };
-    </script>
 </body>
 </html>
